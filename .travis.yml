@@ -102,6 +102,9 @@ deploy:
   bucket: "nest-travis-artefacts"
   region: eu-central-1
   skip_cleanup: true
+  on:
+    repo: nest/nest-simulator
+    branch: s3_test
   local-dir: "$TRAVIS_BUILD_DIR/build/artefacts_upload"
   upload-dir: "nest-travis-artefacts"
   acl: bucket_owner_full_control
