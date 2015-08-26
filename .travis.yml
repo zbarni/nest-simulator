@@ -87,9 +87,10 @@ after_failure:
     done
 before_deploy:
   - cd $TRAVIS_BUILD_DIR/build
-  - tar -zcvf build.tar.gz ./*.* 
+  - tar -zcvf configlog.tar.gz ./*.* 
+   - tar -zcvf reports.tar.gz ./reports 
   - mkdir -p $TRAVIS_BUILD_DIR/build/artefacts_upload
-  - cp build.tar.gz $TRAVIS_BUILD_DIR/build/artefacts_upload
+  - cp configlog.tar.gz reports.tar.gz $TRAVIS_BUILD_DIR/build/artefacts_upload
   #- tar -zcvf $TRAVIS_BUILD_DIR/*.*/nupic_core-${TRAVIS_COMMIT}-${PLATFORM}64.tar.gz $TRAVIS_BUILD_DIR/build/artefacts_upload
 
 #S3 deployment    
@@ -106,5 +107,5 @@ deploy:
     repo: nest/nest-simulator
     branch: s3_test
   local-dir: "$TRAVIS_BUILD_DIR/build/artefacts_upload"
-  upload-dir: "nest-travis-artefacts"
+  upload-dir: "nest-travis-artefacts/$TRAVIS_BUILD_ID/$TRAVIS_JOB_ID"
   acl: bucket_owner_full_control
