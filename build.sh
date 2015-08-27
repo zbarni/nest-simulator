@@ -173,4 +173,7 @@ if [ "$format_error_files" != "" ]; then
   echo "There are files with a formatting error: $format_error_files ."
   exit 42
 fi
-
+if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
+  echo "WARNING: Not uploading results as this is a pull request" >&2
+  exit 2
+fi
