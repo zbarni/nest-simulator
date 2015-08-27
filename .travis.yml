@@ -103,6 +103,7 @@ before_deploy:
   - echo "TRAVIS_PULL_REQUEST:" $TRAVIS_PULL_REQUEST 
   - echo "TRAVIS_SECURE_ENV_VARS:" $TRAVIS_SECURE_ENV_VARS 
   - echo "TRAVIS_REPO_SLUG:"  $TRAVIS_REPO_SLUG
+  - echo "TRAVIS_TEST_RESULT:" $TRAVIS_TEST_RESULT
   
 #S3 deployment    
 
@@ -118,5 +119,5 @@ deploy:
     repo: nest/nest-simulator
     branch: s3_test
   local-dir: "$TRAVIS_BUILD_DIR/build/artefacts_upload"
-  upload-dir: "nest-travis-artefacts/$TRAVIS_BUILD_NUMBER/$TRAVIS_JOB_NUMBER"
+  upload-dir: "$TRAVIS_REPO_SLUG/$TRAVIS_BUILD_NUMBER/$TRAVIS_JOB_NUMBER"
   acl: bucket_owner_full_control
