@@ -245,7 +245,7 @@ Multimeter::handle( DataLoggingReply& reply )
       break;
     }
 
-    if ( is_active( info[ j ].timestamp == false ) )
+    if ( is_active( info[ j ].timestamp ) == false )
     {
       ++inactive_skipped;
       continue;
