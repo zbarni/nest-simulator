@@ -45,15 +45,15 @@ M_ERROR setverbosity
 {
   ResetKernel
 
-  << 
-    /total_num_virtual_procs 4
-  >> SetKernelStatus
+  0 << 
+      /total_num_virtual_procs 4
+    >> SetStatus
 
   /nodes /iaf_psc_alpha 4 Create def
 
-  nodes nodes << /rule /fixed_total_number /N 1 >> Connect
+  [nodes] Range [nodes] Range << /rule /fixed_total_number /N 1 >> Connect
 
-  GetKernelStatus /num_connections get 1 eq
+  0 GetStatus /num_connections get 1 eq
 }
 assert_or_die
 

@@ -90,10 +90,13 @@
     /origin 0.0 ms   % origin of time, to calculate start_time [ms]
   >>
 
-  /recorder /spike_recorder
-  /recorder_params
+  /detector /spike_detector
+  /detector_params
   <<
-   /record_to /ascii
+   /withtime true
+   /withgid  true
+   /precise_times true
+   /to_file  true
    /label (cuba_ps)
   >>
 
@@ -115,9 +118,10 @@
 
 cuba_ps_params using % here we activate the definitions in the dictionary
 
+0
   <<
      /off_grid_spiking true
-  >> SetKernelStatus
+  >> SetStatus
 
 /parameters_set true def
 statusdict/argv :: size 1 gt { 1 get dirname (/) join } { () } ifelse

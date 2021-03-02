@@ -50,7 +50,7 @@ nest.ResetKernel()   # in case we run the script multiple times from iPython
 ####################################################################################
 # We create two instances of the ``sinusoidal_poisson_generator`` with two
 # different parameter sets using ``Create``. Moreover, we create devices to
-# record firing rates (``multimeter``) and spikes (``spike_recorder``) and connect
+# record firing rates (``multimeter``) and spikes (``spike_detector``) and connect
 # them to the generators using ``Connect``.
 
 
@@ -66,17 +66,18 @@ g = nest.Create('sinusoidal_poisson_generator', n=2,
                          'frequency': 5.0,
                          'phase': 90.0}])
 
-m = nest.Create('multimeter', 2, {'interval': 0.1, 'record_from': ['rate']})
-s = nest.Create('spike_recorder', 2)
+m = nest.Create('multimeter', n=2, params={'interval': 0.1, 'withgid': False,
+                                           'record_from': ['rate']})
+s = nest.Create('spike_detector', n=2, params={'withgid': False})
 
 nest.Connect(m, g, 'one_to_one')
 nest.Connect(g, s, 'one_to_one')
-print(m.get())
+print(nest.GetStatus(m))
 nest.Simulate(200)
 
 
 ###############################################################################
-# After simulating, the spikes are extracted from the ``spike_recorder`` using
+# After simulating, the spikes are extracted from the ``spike_detector`` using
 # ``GetStatus`` and plots are created with panels for the PST and ISI histograms.
 
 
@@ -84,11 +85,11 @@ colors = ['b', 'g']
 
 for j in range(2):
 
-    ev = m[j].events
+    ev = nest.GetStatus([m[j]])[0]['events']
     t = ev['times']
     r = ev['rate']
 
-    sp = nest.GetStatus(s[j])[0]['events']['times']
+    sp = nest.GetStatus([s[j]])[0]['events']['times']
     plt.subplot(221)
     h, e = np.histogram(sp, bins=np.arange(0., 201., 5.))
     plt.plot(t, r, color=colors[j])
@@ -113,7 +114,7 @@ nest.SetKernelStatus({'local_num_threads': 4})
 ###############################################################################
 # A ``sinusoidal_poisson_generator`` with  ``individual_spike_trains`` set to
 # `True` is created and connected to 20 parrot neurons whose spikes are
-# recorded by a ``spike_recorder``. After simulating, a raster plot of the spikes
+# recorded by a ``spike_detector``. After simulating, a raster plot of the spikes
 # is created.
 
 
@@ -122,13 +123,13 @@ g = nest.Create('sinusoidal_poisson_generator',
                         'frequency': 10.0, 'phase': 0.0,
                         'individual_spike_trains': True})
 p = nest.Create('parrot_neuron', 20)
-s = nest.Create('spike_recorder')
+s = nest.Create('spike_detector')
 
 nest.Connect(g, p, 'all_to_all')
 nest.Connect(p, s, 'all_to_all')
 
 nest.Simulate(200)
-ev = s.events
+ev = nest.GetStatus(s)[0]['events']
 plt.subplot(222)
 plt.plot(ev['times'], ev['senders'] - min(ev['senders']), 'o')
 plt.ylim([-0.5, 19.5])
@@ -151,16 +152,15 @@ g = nest.Create('sinusoidal_poisson_generator',
                         'frequency': 10.0, 'phase': 0.0,
                         'individual_spike_trains': False})
 p = nest.Create('parrot_neuron', 20)
-s = nest.Create('spike_recorder')
+s = nest.Create('spike_detector')
 
 nest.Connect(g, p, 'all_to_all')
 nest.Connect(p, s, 'all_to_all')
 
 nest.Simulate(200)
-ev = s.events
+ev = nest.GetStatus(s)[0]['events']
 plt.subplot(224)
 plt.plot(ev['times'], ev['senders'] - min(ev['senders']), 'o')
 plt.ylim([-0.5, 19.5])
 plt.yticks([])
 plt.title('One spike train for all targets')
-plt.show()

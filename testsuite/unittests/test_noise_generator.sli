@@ -38,7 +38,6 @@ SeeAlso: noise_generator
 /unittest using
 
 % First test: parameter setting on model and instance
-(Test 1) ==
 {
     ResetKernel
     /tdict << /mean 10.5 /std 0.23 /dt 0.5 >> def
@@ -57,25 +56,22 @@ clear
 ResetKernel
 
 % Second test: error if uncommensurable delta_tau
-(Test 2) ==
 {
   ResetKernel
-  << /resolution 0.1 >> SetKernelStatus
+  0 << /resolution 0.1 >> SetStatus
   /noise_generator << /dt 0.25 >> SetDefaults
 } fail_or_die  
 
 % Third test: error if uncommensurable change of resolution
-(Test 3) ==
 {
   ResetKernel
-  << /resolution 0.1 >> SetKernelStatus
+  0 << /resolution 0.1 >> SetStatus
   /noise_generator << /dt 0.1 >> SetDefaults
-  << /resolution 1.0 >> SetKernelStatus
+  0 << /resolution 1.0 >> SetStatus
   /noise_generator Create % cannot create now with dt==0.1
 } fail_or_die  
 
 % Fourth test: recording at two different dt
-(Test 4) ==
 /vb verbosity def
 M_ERROR setverbosity  % suppress warning from time reset
 {
@@ -83,7 +79,7 @@ M_ERROR setverbosity  % suppress warning from time reset
   % create 100 repetitions of 1000ms simulations
   % collect membrane potential at end 
   ResetKernel
-  << /resolution 0.1 >> SetKernelStatus
+  0 << /resolution 0.1 >> SetStatus
   /ng  /noise_generator Create def
   /nrn /iaf_psc_alpha Create def
   ng nrn Connect
@@ -98,6 +94,8 @@ M_ERROR setverbosity  % suppress warning from time reset
   /Nsims 100 def
   [Nsims] {
     pop
+    ResetNetwork 
+    0 <</time 0.0>> SetStatus 
     1000 Simulate 
     nrn [/V_m] get
   } Table 

@@ -38,62 +38,55 @@ _ignore_modules = set()
 #   `from .libs.$X import *`
 # for every module in ./libs/$X.py that is left
 _il.import_libs(__file__, globals(), 'lib', ignore=_ignore_modules)
-
 ############################
 
 # With '__all__' we provide an explicit index of the package. Without any
 # imported submodules and any redundant functions we could minimize list.
 __all__ = [
+    'BeginSubnet',  # deprecated
     'CGConnect',
     'CGParse',
     'CGSelectImplementation',
+    'ChangeSubnet',  # deprecated
     'Cleanup',
     'Connect',
     'ConnectionRules',
-    'SynapseCollection',
     'CopyModel',
     'Create',
-    'CreateMask',
-    'CreateParameter',
+    'CurrentSubnet',  # deprecated
+    'DataConnect',  # deprecated
     'DisableStructuralPlasticity',
     'Disconnect',
-    'Displacement',
-    'Distance',
-    'DumpLayerConnections',
-    'DumpLayerNodes',
+    'DisconnectOneToOne',
     'EnableStructuralPlasticity',
-    'FindCenterElement',
-    'FindNearestElement',
+    'EndSubnet',  # deprecated
+    'GetChildren',  # deprecated
     'GetConnections',
     'GetDefaults',
     'GetKernelStatus',
-    'GetLocalNodeCollection',
-    'GetNodes',
-    'GetPosition',
+    'GetLeaves',  # deprecated
+    'GetLID',  # deprecated
+    'GetNetwork',  # deprecated
+    'GetNodes',  # deprecated
     'GetStatus',
-    'GetTargetNodes',
-    'GetTargetPositions',
-    'NodeCollection',
+    'GetStructuralPlasticityStatus',
     'Install',
-    'Mask',
+    'LayoutNetwork',  # deprecated
     'Models',
     'NumProcesses',
-    'Parameter',
-    'PlotLayer',
-    'PlotProbabilityParameter',
-    'PlotTargets',
     'Prepare',
-    'PrintNodes',
+    'PrintNetwork',  # deprecated
     'Rank',
     'ResetKernel',
+    'ResetNetwork',  # deprecated
     'Run',
     'RunManager',
-    'SelectNodesByMask',
     'SetAcceptableLatency',
     'SetDefaults',
     'SetKernelStatus',
     'SetMaxBuffered',
     'SetStatus',
+    'SetStructuralPlasticityStatus',
     'Simulate',
     'authors',
     'get_verbosity',

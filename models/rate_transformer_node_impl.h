@@ -35,8 +35,6 @@
 
 // Includes from libnestutil:
 #include "numerics.h"
-#include "dict_util.h"
-
 
 // Includes from nestkernel:
 #include "exceptions.h"
@@ -88,9 +86,9 @@ nest::rate_transformer_node< TNonlinearities >::Parameters_::get( DictionaryDatu
 
 template < class TNonlinearities >
 void
-nest::rate_transformer_node< TNonlinearities >::Parameters_::set( const DictionaryDatum& d, Node* node )
+nest::rate_transformer_node< TNonlinearities >::Parameters_::set( const DictionaryDatum& d )
 {
-  updateValueParam< bool >( d, names::linear_summation, linear_summation_, node );
+  updateValue< bool >( d, names::linear_summation, linear_summation_ );
 }
 
 template < class TNonlinearities >
@@ -102,9 +100,9 @@ nest::rate_transformer_node< TNonlinearities >::State_::get( DictionaryDatum& d 
 
 template < class TNonlinearities >
 void
-nest::rate_transformer_node< TNonlinearities >::State_::set( const DictionaryDatum& d, Node* node )
+nest::rate_transformer_node< TNonlinearities >::State_::set( const DictionaryDatum& d )
 {
-  updateValueParam< double >( d, names::rate, rate_, node ); // Rate
+  updateValue< double >( d, names::rate, rate_ ); // Rate
 }
 
 template < class TNonlinearities >

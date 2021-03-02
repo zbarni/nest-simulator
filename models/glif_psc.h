@@ -32,15 +32,11 @@
 
 #include "dictdatum.h"
 
-/* BeginUserDocs: integrate-and-fire, current-based
+/* BeginDocumentation
+Name: glif_psc - Current-based generalized leaky integrate and fire (GLIF)
+model
 
-Short description
-+++++++++++++++++
-
-Current-based generalized leaky integrate-and-fire models
-
-Description
-+++++++++++
+Description:
 
 glif_psc provides five generalized leaky integrate-and-fire
 (GLIF) models [1] with alpha-function shaped synaptic currents.
@@ -64,8 +60,7 @@ GLIF Model 5 - Leaky integrate and fire with biologically defined reset rules,
                after-spike currents and a voltage dependent threshold
                (LIF_R_ASC_A) model.
 
-Parameters
-++++++++++
+Parameters:
 
 The following parameters can be set in the status dictionary.
 
@@ -109,7 +104,7 @@ Remarks:
 
 GLIF model mechanism setting is based on three parameters
 (spike_dependent_threshold, after_spike_currents, adapting_threshold).
-The settings of these three parameters for the five GLIF models are listed below.
+The settings of these three parameters for the five GLIF models are list below.
 Other combinations of these parameters will not be supported.
 GLIF Model 1 (LIF) - (False, False, False),
 GLIF Model 2 (LIF_R) - (True, False, False),
@@ -129,21 +124,19 @@ appropriate digits for simplification.
 For models with spike dependent threshold (i.e., GLIF2, GLIF4 and GLIF5),
 parameter setting of voltage_reset_fraction and voltage_reset_add may lead to the
 situation that voltage is bigger than threshold after reset. In this case, the neuron
-will continue to spike until the end of the simulation regardless the stimulated inputs.
+will continue spike until the end of the simulation regardless the stimulated inputs.
 We recommend the setting of the parameters of these three models to follow the
 condition of (E_L + voltage_reset_fraction * ( V_th - E_L ) + voltage_reset_add)
 < (V_th + th_spike_add).
 
-
-References
-++++++++++
-
+References:
 [1] Teeter C, Iyer R, Menon V, Gouwens N, Feng D, Berg J, Szafer A,
     Cain N, Zeng H, Hawrylycz M, Koch C, & Mihalas S (2018)
     Generalized leaky integrate-and-fire models classify multiple neuron types.
     Nature Communications 9:709.
 
-EndUserDocs */
+Author: Binghuang Cai and Kael Dai @ Allen Institute for Brain Science
+*/
 
 namespace nest
 {

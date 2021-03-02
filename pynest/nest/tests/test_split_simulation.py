@@ -26,32 +26,50 @@ import nest
 class TestSplit(unittest.TestCase):
     steps = 100
     time = 100
-    spike = None
 
     def __init__(self, *args, **kwargs):
         super(TestSplit, self).__init__(*args, **kwargs)
+        self.spike = None
 
-    def setup_and_extract_data(f):
-        def _decorator(self):
-            nest.ResetKernel()
-            n1 = nest.Create("iaf_psc_alpha", params={"I_e": 376.0})
-            self.spike = nest.Create('spike_recorder')
-            nest.Connect(n1, self.spike)
-            f(self)
-            events = self.spike.events
-            return list(zip(events['senders'], events['times']))
+    def setup(self):
+        nest.ResetKernel()
+        nest.SetDefaults('spike_detector', {'withtime': True})
 
-        return _decorator
+        n1 = nest.Create("iaf_psc_alpha")
+        nest.SetStatus(n1, {"I_e": 376.0})
 
-    @setup_and_extract_data
+        self.spike = spike = nest.Create('spike_detector')
+        nest.Connect(n1, spike)
+
+    def runner(self, time, f):
+        spike = self.spike
+        nest.SetStatus(spike, [{'n_events': 0}])
+
+        f(time)
+        spikes = nest.GetStatus(spike, 'events')[0]
+        senders, times = spikes['senders'], spikes['times']
+
+        return zip(senders, times)
+
     def runs(self):
-        with nest.RunManager():
-            for _ in range(self.steps):
-                nest.Run(self.time)
+        self.setup()
+        steps, time = self.steps, self.time
 
-    @setup_and_extract_data
+        with nest.RunManager():
+            return [
+              (s, t)
+              for _ in range(steps)
+              for s, t in self.runner(time, nest.Run)
+            ]
+
     def simulate(self):
-        nest.Simulate(self.time * self.steps)
+        self.setup()
+        steps, time = self.steps, self.time
+
+        return [
+            (s, t)
+            for s, t in self.runner(time * steps, nest.Simulate)
+        ]
 
     def test_split_match(self):
         r0 = self.runs()
@@ -62,7 +80,6 @@ class TestSplit(unittest.TestCase):
 def suite():
     suite = unittest.TestLoader().loadTestsFromTestCase(TestSplit)
     return suite
-
 
 if __name__ == '__main__':
     runner = unittest.TextTestRunner(verbosity=2)

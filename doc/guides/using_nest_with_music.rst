@@ -96,7 +96,7 @@ connect it with the neuron.
 ::
 
    vm = nest.Create('voltmeter')
-   nest.SetStatus(vm, {'record_to': 'screen'})
+   nest.SetStatus(vm, {'to_memory': False, 'to_screen': True})
 
    nest.Connect(vm, n)
 
@@ -139,7 +139,7 @@ script, but without the spike generator.
   nest.Connect(meip, n, 'one_to_one', {'weight': 750.0})
 
   vm = nest.Create('voltmeter')
-  nest.SetStatus(vm, {'record_to': 'screen'})
+  nest.SetStatus(vm, {'to_memory': False, 'to_screen': True})
 
   nest.Connect(vm, n)
 
@@ -217,7 +217,7 @@ simulated  in steps of 10 ms.
 
 ::
 
-    #!/usr/bin/python3
+    #!/usr/bin/python
 
     import nest
 
@@ -323,7 +323,7 @@ steps of 10 ms.
 
 ::
 
-    #!/usr/bin/python3
+    #!/usr/bin/python
 
     import nest
 

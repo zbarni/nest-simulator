@@ -251,24 +251,24 @@ public:
    * Sets a flag in the connection to signal that the following connection has
    * the same source.
    *
-   * @see source_has_more_targets
+   * @see has_source_subsequent_targets
    */
   void
-  set_source_has_more_targets( const bool more_targets )
+  set_has_source_subsequent_targets( const bool subsequent_targets )
   {
-    syn_id_delay_.set_source_has_more_targets( more_targets );
+    syn_id_delay_.set_has_source_subsequent_targets( subsequent_targets );
   }
 
   /**
    * Returns a flag denoting whether the connection has source subsequent
    * targets.
    *
-   * @see set_source_has_more_targets
+   * @see set_has_source_subsequent_targets
    */
   bool
-  source_has_more_targets() const
+  has_source_subsequent_targets() const
   {
-    return syn_id_delay_.source_has_more_targets();
+    return syn_id_delay_.has_source_subsequent_targets();
   }
 
   /**
@@ -398,7 +398,10 @@ Connection< targetidentifierT >::trigger_update_weight( const thread,
   const double,
   const CommonSynapseProperties& )
 {
-  throw IllegalConnection( "Connection does not support updates that are triggered by a volume transmitter." );
+  throw IllegalConnection(
+    "Connection::trigger_update_weight: "
+    "Connection does not support updates that are triggered by the volume "
+    "transmitter." );
 }
 
 } // namespace nest

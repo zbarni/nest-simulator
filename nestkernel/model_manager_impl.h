@@ -91,8 +91,7 @@ ModelManager::register_connection_model( const std::string& name, const Register
     enumFlagSet( flags, RegisterConnectionModelFlags::HAS_DELAY ),
     enumFlagSet( flags, RegisterConnectionModelFlags::REQUIRES_SYMMETRIC ),
     enumFlagSet( flags, RegisterConnectionModelFlags::SUPPORTS_WFR ),
-    enumFlagSet( flags, RegisterConnectionModelFlags::REQUIRES_CLOPATH_ARCHIVING ),
-    enumFlagSet( flags, RegisterConnectionModelFlags::REQUIRES_URBANCZIK_ARCHIVING ) );
+    enumFlagSet( flags, RegisterConnectionModelFlags::REQUIRES_CLOPATH_ARCHIVING ) );
   register_connection_model_( cf );
 
   // register the "hpc" version with the same parameters but a different target
@@ -104,8 +103,7 @@ ModelManager::register_connection_model( const std::string& name, const Register
       enumFlagSet( flags, RegisterConnectionModelFlags::HAS_DELAY ),
       enumFlagSet( flags, RegisterConnectionModelFlags::REQUIRES_SYMMETRIC ),
       enumFlagSet( flags, RegisterConnectionModelFlags::SUPPORTS_WFR ),
-      enumFlagSet( flags, RegisterConnectionModelFlags::REQUIRES_CLOPATH_ARCHIVING ),
-      enumFlagSet( flags, RegisterConnectionModelFlags::REQUIRES_URBANCZIK_ARCHIVING ) );
+      enumFlagSet( flags, RegisterConnectionModelFlags::REQUIRES_CLOPATH_ARCHIVING ) );
     register_connection_model_( cf );
   }
 
@@ -118,8 +116,7 @@ ModelManager::register_connection_model( const std::string& name, const Register
       enumFlagSet( flags, RegisterConnectionModelFlags::HAS_DELAY ),
       enumFlagSet( flags, RegisterConnectionModelFlags::REQUIRES_SYMMETRIC ),
       enumFlagSet( flags, RegisterConnectionModelFlags::SUPPORTS_WFR ),
-      enumFlagSet( flags, RegisterConnectionModelFlags::REQUIRES_CLOPATH_ARCHIVING ),
-      enumFlagSet( flags, RegisterConnectionModelFlags::REQUIRES_URBANCZIK_ARCHIVING ) );
+      enumFlagSet( flags, RegisterConnectionModelFlags::REQUIRES_CLOPATH_ARCHIVING ) );
     register_connection_model_( cf );
   }
 }
@@ -172,13 +169,9 @@ ModelManager::register_secondary_connection_model( const std::string& name, cons
 }
 
 inline Node*
-ModelManager::get_proxy_node( thread tid, index node_id )
+ModelManager::get_proxy_node( thread tid, index gid )
 {
-  const int model_id = kernel().modelrange_manager.get_model_id( node_id );
-  Node* proxy = proxy_nodes_[ tid ].at( model_id );
-  proxy->set_node_id_( node_id );
-  proxy->set_vp( kernel().vp_manager.node_id_to_vp( node_id ) );
-  return proxy;
+  return proxy_nodes_[ tid ].at( kernel().modelrange_manager.get_model_id( gid ) );
 }
 
 

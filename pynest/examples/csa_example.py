@@ -31,7 +31,7 @@ libneurosim. For details, see [1]_.
 See Also
 ~~~~~~~~~~
 
-:doc:`csa_spatial_example`
+:doc:`csa_topology_example`
 
 References
 ~~~~~~~~~~~~
@@ -64,10 +64,10 @@ except ImportError:
           "  -Dwith-libneurosim=[OFF|ON|</path/to/libneurosim>]\n" +
           "and CSA and libneurosim are available.")
     import sys
-    sys.exit(1)
+    sys.exit()
 
 ###############################################################################
-# To set up the connectivity, we create a ``random`` connection set with a
+# To set up the connectivity, We create a ``random`` connection set with a
 # probability of 0.1 and two associated values (10000.0 and 1.0) used as
 # weight and delay, respectively.
 
@@ -117,4 +117,3 @@ visualization.plot_network(allnodes, "csa_example_graph.png")
 
 nest.Simulate(50.0)
 voltage_trace.from_device(vm)
-voltage_trace.show()

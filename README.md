@@ -1,23 +1,10 @@
-# The Neural Simulation Tool - NEST
+# The Neural Simulation Tool - NEST 
 
-[![Documentation](https://img.shields.io/readthedocs/nest-simulator?logo=readthedocs&logo=Read%20the%20Docs&label=Documentation)](https://nest-simulator.org/documentation)
-[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2218/badge)](https://bestpractices.coreinfrastructure.org/projects/2218)
+[![Build Status](https://travis-ci.org/nest/nest-simulator.svg?branch=master)](https://travis-ci.org/nest/nest-simulator)
 [![License](http://img.shields.io/:license-GPLv2+-green.svg)](http://www.gnu.org/licenses/gpl-2.0.html)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3605514.svg)](https://doi.org/10.5281/zenodo.3605514)
-
-[![Latest release](https://img.shields.io/github/release/nest/nest-simulator.svg?color=brightgreen&label=latest%20release)](https://github.com/nest/nest-simulator/releases)
-[![GitHub contributors](https://img.shields.io/github/contributors/nest/nest-simulator?logo=github)](https://github.com/nest/nest-simulator)
-[![GitHub commit activity](https://img.shields.io/github/commit-activity/y/nest/nest-simulator?logo=github&color=%23ff6633)](https://github.com/nest/nest-simulator)
-
-[![Ubuntu version](https://img.shields.io/badge/ubuntu-v2.20.0%20(PPA)-blue?logo=debian)](https://nest-simulator.readthedocs.io/en/latest/installation/)
-[![Fedora package](https://img.shields.io/fedora/v/nest?logo=fedora)](https://src.fedoraproject.org/rpms/nest)
-[![Conda version](https://img.shields.io/conda/vn/conda-forge/nest-simulator.svg?logo=conda-forge&logoColor=white)](https://anaconda.org/conda-forge/nest-simulator)
-[![Homebrew version](https://img.shields.io/homebrew/v/nest.svg?logo=apple)](https://formulae.brew.sh/formula/nest)
-[![Docker Image Version](https://img.shields.io/docker/v/nestsim/nest/2.20.0?label=docker&logo=docker&logoColor=white)](https://hub.docker.com/r/nestsim/nest)
-[![Virtual applicance](https://img.shields.io/badge/VM-v2.20.0-blue?logo=CodeSandbox)](https://nest-simulator.readthedocs.io/en/latest/download.html#download-livemedia)
-
-[![YouTube Video Views](https://img.shields.io/youtube/views/K7KXmIv6ROY?style=social)](https://www.youtube.com/results?search_query=nest-simulator+neurons)
-[![Twitter Follow](https://img.shields.io/twitter/follow/nestsimulator?style=social)](https://twitter.com/nestsimulator)
+[![Latest Version](https://img.shields.io/badge/latest%20version-2.20.0-brightgreen.svg)](https://github.com/nest/nest-simulator/releases/tag/v2.20.0)
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2218/badge)](https://bestpractices.coreinfrastructure.org/projects/2218)
 
 NEST is a simulator for spiking neural network models that focuses on the
 dynamics, size and structure of neural systems rather than on the exact
@@ -176,3 +163,17 @@ Here is a suitable BibTeX entry:
 Please get in touch with us about your publications that used NEST, we will add
 them to our [publication list](https://www.nest-simulator.org/publications), thus
 making them visible to potential readers.
+
+## Editor support
+
+A simple syntax file for VIM users has been provided. Copy it to your vim
+configuration folder to make it available to VIM:
+```
+    $ cp ${prefix}/share/nest/extras/EditorSupport/vim/syntax/sli.vim ~/.vim/syntax/sli.vim
+```
+Then add the following lines to your `~/.vimrc` file to use it:
+```
+    " sli
+    au BufRead,BufNewFile *.sli set filetype=sli
+    au FileType sli setl foldenable foldmethod=syntax
+```

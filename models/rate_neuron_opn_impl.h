@@ -102,27 +102,27 @@ nest::rate_neuron_opn< TNonlinearities >::Parameters_::get( DictionaryDatum& d )
 
 template < class TNonlinearities >
 void
-nest::rate_neuron_opn< TNonlinearities >::Parameters_::set( const DictionaryDatum& d, Node* node )
+nest::rate_neuron_opn< TNonlinearities >::Parameters_::set( const DictionaryDatum& d )
 {
-  updateValueParam< double >( d, names::tau, tau_, node );
-  updateValueParam< double >( d, names::mu, mu_, node );
-  updateValueParam< double >( d, names::sigma, sigma_, node );
-  updateValueParam< bool >( d, names::linear_summation, linear_summation_, node );
-  updateValueParam< bool >( d, names::mult_coupling, mult_coupling_, node );
+  updateValue< double >( d, names::tau, tau_ );
+  updateValue< double >( d, names::mu, mu_ );
+  updateValue< double >( d, names::sigma, sigma_ );
+  updateValue< bool >( d, names::linear_summation, linear_summation_ );
+  updateValue< bool >( d, names::mult_coupling, mult_coupling_ );
 
   // Check for old names
-  if ( updateValueParam< double >( d, names::mean, mu_, node ) )
+  if ( updateValue< double >( d, names::mean, mu_ ) )
   {
     LOG( M_WARNING,
-      "rate_neuron_opn< TNonlinearities >::Parameters_::set",
+      "rate_neuron_ipn< TNonlinearities >::Parameters_::set",
       "The parameter mean has been renamed to mu. Please use the new "
       "name from now on." );
   }
 
-  if ( updateValueParam< double >( d, names::std, sigma_, node ) )
+  if ( updateValue< double >( d, names::std, sigma_ ) )
   {
     LOG( M_WARNING,
-      "rate_neuron_opn< TNonlinearities >::Parameters_::set",
+      "rate_neuron_ipn< TNonlinearities >::Parameters_::set",
       "The parameter std has been renamed to sigma. Please use the new "
       "name from now on." );
   }
@@ -149,9 +149,9 @@ nest::rate_neuron_opn< TNonlinearities >::State_::get( DictionaryDatum& d ) cons
 
 template < class TNonlinearities >
 void
-nest::rate_neuron_opn< TNonlinearities >::State_::set( const DictionaryDatum& d, Node* node )
+nest::rate_neuron_opn< TNonlinearities >::State_::set( const DictionaryDatum& d )
 {
-  updateValueParam< double >( d, names::rate, rate_, node ); // Rate
+  updateValue< double >( d, names::rate, rate_ ); // Rate
 }
 
 template < class TNonlinearities >

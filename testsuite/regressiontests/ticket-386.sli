@@ -48,14 +48,15 @@ M_ERROR setverbosity
 /run_test
 {
   ResetKernel
-  << /resolution resolution >> SetKernelStatus
+  0 << /resolution resolution >> SetStatus
   /model Set
   model GetDefaults dup
   /recordables known
   {
      /recordables get /recs Set
      /n model Create def
-     /mm /multimeter << /record_from recs /interval resolution >> Create def
+     /mm /multimeter << /record_from recs /withtime false 
+                        /interval resolution >> Create def
      mm n Connect
      10.0 Simulate
   }

@@ -40,16 +40,15 @@
 namespace nest
 {
 
-/* BeginUserDocs: device, generator
+/** @BeginDocumentation
+@ingroup Devices
+@ingroup generator
 
-Short description
-+++++++++++++++++
+Name: ppd_sup_generator - simulate the superimposed spike train of a population
+of Poisson processes
+with dead time.
 
-Simulate the superimposed spike train of a population of Poisson
-processes with dead time
-
-Description
-+++++++++++
+Description:
 
 The ppd_sup_generator generator simulates the pooled spike train of a
 population of neurons firing independently with Poisson process with dead
@@ -57,11 +56,10 @@ time statistics.
 The rate parameter can also be sine-modulated. The generator does not
 initialize to equilibrium in this case, initial transients might occur.
 
-Parameters
-++++++++++
+Parameters:
 
 The following parameters appear in the element's status dictionary:
-
+\verbatim embed:rst
 ===================  ======== =================================================
  rate                spikes/s Mean firing rate of the component processes,
                               default: 0 spikes/s
@@ -72,21 +70,23 @@ The following parameters appear in the element's status dictionary:
  frequency           Hz       Rate modulation frequency, default: 0 Hz
  relative_amplitude  real     Relative rate modulation amplitude, default: 0
 ===================  ======== =================================================
+\endverbatim
 
-References
-++++++++++
+Remarks:
 
+References:
+
+\verbatim embed:rst
 .. [1]  Deger M, Helias M, Boucsein C, Rotter S (2011). Statistical properties
         of superimposed stationary spike trains. Journal of Computational
         Neuroscience. DOI: https://doi.org/10.1007/s10827-011-0362-8
+\endverbatim
+Authors:
+   June 2009, Moritz Deger, Moritz Helias
 
-See also
-++++++++
-
-gamma_sup_generator, poisson_generator_ps, spike_generator
-
-EndUserDocs */
-
+SeeAlso: gamma_sup_generator, poisson_generator_ps, spike_generator, Device,
+StimulatingDevice
+*/
 class ppd_sup_generator : public DeviceNode
 {
 
@@ -99,18 +99,11 @@ public:
   {
     return false;
   }
-
   bool
   is_off_grid() const
   {
     return false;
-  }
-
-  Name
-  get_element_type() const
-  {
-    return names::stimulator;
-  }
+  } // does not use off_grid events
 
   /**
    * Import sets of overloaded virtual functions.
@@ -170,8 +163,8 @@ private:
 
     Parameters_(); //!< Sets default parameter values
 
-    void get( DictionaryDatum& ) const;             //!< Store current values in dictionary
-    void set( const DictionaryDatum&, Node* node ); //!< Set values from dicitonary
+    void get( DictionaryDatum& ) const; //!< Store current values in dictionary
+    void set( const DictionaryDatum& ); //!< Set values from dicitonary
   };
 
   // ------------------------------------------------------------
@@ -272,7 +265,7 @@ inline void
 ppd_sup_generator::set_status( const DictionaryDatum& d )
 {
   Parameters_ ptmp = P_; // temporary copy in case of errors
-  ptmp.set( d, this );   // throws if BadProperty
+  ptmp.set( d );         // throws if BadProperty
 
   // We now know that ptmp is consistent. We do not write it back
   // to P_ before we are also sure that the properties to be set

@@ -27,7 +27,7 @@
 #include <neurosim/connection_generator.h>
 
 // Includes from sli:
-#include "sharedptrdatum.h"
+#include "lockptrdatum.h"
 #include "slitype.h"
 
 typedef std::vector< ConnectionGenerator::ClosedInterval > RangeSet;
@@ -38,7 +38,7 @@ namespace nest
 
 extern SLIType ConnectionGeneratorType;
 
-typedef sharedPtrDatum< ConnectionGenerator, &ConnectionGeneratorType > ConnectionGeneratorDatum;
+typedef lockPTRDatum< ConnectionGenerator, &ConnectionGeneratorType > ConnectionGeneratorDatum;
 
 } // namespace nest
 

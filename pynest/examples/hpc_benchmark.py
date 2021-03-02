@@ -72,11 +72,11 @@ References
 
 """
 
+from __future__ import print_function  # for Python 2
 import numpy as np
 import os
 import sys
 import time
-import scipy.special as sp
 
 import nest
 import nest.raster_plot
@@ -224,10 +224,21 @@ def build_network(logger):
         nest.message(M_INFO, 'build_network',
                      'Randomzing membrane potentials.')
 
-        random_vm = nest.random.normal(brunel_params['mean_potential'],
-                                       brunel_params['sigma_potential'])
-        nest.GetLocalNodeCollection(E_neurons).V_m = random_vm
-        nest.GetLocalNodeCollection(I_neurons).V_m = random_vm
+        seed = nest.GetKernelStatus(
+            'rng_seeds')[-1] + 1 + nest.GetStatus([0], 'vp')[0]
+        rng = np.random.RandomState(seed=seed)
+
+        for node in get_local_nodes(E_neurons):
+            nest.SetStatus([node],
+                           {'V_m': rng.normal(
+                               brunel_params['mean_potential'],
+                               brunel_params['sigma_potential'])})
+
+        for node in get_local_nodes(I_neurons):
+            nest.SetStatus([node],
+                           {'V_m': rng.normal(
+                               brunel_params['mean_potential'],
+                               brunel_params['sigma_potential'])})
 
     # number of incoming excitatory connections
     CE = int(1. * NE / params['scale'])
@@ -251,16 +262,14 @@ def build_network(logger):
                              'rate': nu_ext * CE * 1000.})
 
     nest.message(M_INFO, 'build_network',
-                 'Creating excitatory spike recorder.')
+                 'Creating excitatory spike detector.')
 
     if params['record_spikes']:
-        recorder_label = os.path.join(
+        detector_label = os.path.join(
             brunel_params['filestem'],
             'alpha_' + str(stdp_params['alpha']) + '_spikes')
-        E_recorder = nest.Create('spike_recorder', params={
-            'record_to': 'ascii',
-            'label': recorder_label
-        })
+        E_detector = nest.Create('spike_detector', 1, {
+            'withtime': True, 'to_file': True, 'label': detector_label})
 
     BuildNodeTime = time.time() - tic
 
@@ -284,51 +293,44 @@ def build_network(logger):
     # Connect Poisson generator to neuron
 
     nest.Connect(E_stimulus, E_neurons, {'rule': 'all_to_all'},
-                 {'synapse_model': 'syn_ex'})
+                 {'model': 'syn_ex'})
     nest.Connect(E_stimulus, I_neurons, {'rule': 'all_to_all'},
-                 {'synapse_model': 'syn_ex'})
+                 {'model': 'syn_ex'})
 
     nest.message(M_INFO, 'build_network',
                  'Connecting excitatory -> excitatory population.')
 
     nest.Connect(E_neurons, E_neurons,
                  {'rule': 'fixed_indegree', 'indegree': CE,
-                  'allow_autapses': False, 'allow_multapses': True},
-                 {'synapse_model': 'stdp_pl_synapse_hom_hpc'})
+                     'autapses': False, 'multapses': True},
+                 {'model': 'stdp_pl_synapse_hom_hpc'})
 
     nest.message(M_INFO, 'build_network',
                  'Connecting inhibitory -> excitatory population.')
 
     nest.Connect(I_neurons, E_neurons,
                  {'rule': 'fixed_indegree', 'indegree': CI,
-                  'allow_autapses': False, 'allow_multapses': True},
-                 {'synapse_model': 'syn_in'})
+                     'autapses': False, 'multapses': True},
+                 {'model': 'syn_in'})
 
     nest.message(M_INFO, 'build_network',
                  'Connecting excitatory -> inhibitory population.')
 
     nest.Connect(E_neurons, I_neurons,
                  {'rule': 'fixed_indegree', 'indegree': CE,
-                  'allow_autapses': False, 'allow_multapses': True},
-                 {'synapse_model': 'syn_ex'})
+                     'autapses': False, 'multapses': True},
+                 {'model': 'syn_ex'})
 
     nest.message(M_INFO, 'build_network',
                  'Connecting inhibitory -> inhibitory population.')
 
     nest.Connect(I_neurons, I_neurons,
                  {'rule': 'fixed_indegree', 'indegree': CI,
-                  'allow_autapses': False, 'allow_multapses': True},
-                 {'synapse_model': 'syn_in'})
+                     'autapses': False, 'multapses': True},
+                 {'model': 'syn_in'})
 
     if params['record_spikes']:
-        if params['nvp'] != 1:
-            local_neurons = nest.GetLocalNodeCollection(E_neurons)
-            # GetLocalNodeCollection returns a stepped composite NodeCollection, which
-            # cannot be sliced. In order to allow slicing it later on, we're creating a
-            # new regular NodeCollection from the plain node IDs.
-            local_neurons = nest.NodeCollection(local_neurons.tolist())
-        else:
-            local_neurons = E_neurons
+        local_neurons = list(get_local_nodes(E_neurons))
 
         if len(local_neurons) < brunel_params['Nrec']:
             nest.message(
@@ -338,8 +340,8 @@ def build_network(logger):
                 spikes should be recorded from. Aborting the simulation!""")
             exit(1)
 
-        nest.message(M_INFO, 'build_network', 'Connecting spike recorders.')
-        nest.Connect(local_neurons[:brunel_params['Nrec']], E_recorder,
+        nest.message(M_INFO, 'build_network', 'Connecting spike detectors.')
+        nest.Connect(local_neurons[:brunel_params['Nrec']], E_detector,
                      'all_to_all', 'static_synapse_hpc')
 
     # read out time used for building
@@ -348,7 +350,7 @@ def build_network(logger):
     logger.log(str(BuildEdgeTime) + ' # build_edge_time')
     logger.log(str(memory_thisjob()) + ' # virt_mem_after_edges')
 
-    return E_recorder if params['record_spikes'] else None
+    return E_detector if params['record_spikes'] else None
 
 
 def run_simulation():
@@ -362,7 +364,7 @@ def run_simulation():
 
         logger.log(str(memory_thisjob()) + ' # virt_mem_0')
 
-        sr = build_network(logger)
+        sdet = build_network(logger)
 
         tic = time.time()
 
@@ -383,12 +385,12 @@ def run_simulation():
         logger.log(str(SimCPUTime) + ' # sim_time')
 
         if params['record_spikes']:
-            logger.log(str(compute_rate(sr)) + ' # average rate')
+            logger.log(str(compute_rate(sdet)) + ' # average rate')
 
         print(nest.GetKernelStatus())
 
 
-def compute_rate(sr):
+def compute_rate(sdet):
     """Compute local approximation of average firing rate
 
     This approximation is based on the number of local nodes, number
@@ -397,7 +399,7 @@ def compute_rate(sr):
 
     """
 
-    n_local_spikes = sr.n_events
+    n_local_spikes = nest.GetStatus(sdet, 'n_events')[0]
     n_local_neurons = brunel_params['Nrec']
     simtime = params['simtime']
     return 1. * n_local_spikes / (n_local_neurons * simtime) * 1e3
@@ -411,8 +413,28 @@ def memory_thisjob():
 
 def lambertwm1(x):
     """Wrapper for LambertWm1 function"""
-    # Using scipy to mimic the gsl_sf_lambert_Wm1 function.
-    return sp.lambertw(x, k=-1 if x < 0 else 0).real
+    nest.ll_api.sr('{} LambertWm1'.format(x))
+    return nest.ll_api.spp()
+
+
+def get_local_nodes(nodes):
+    """Generator for efficient looping over local nodes
+
+    Assumes nodes is a continous list of gids [1, 2, 3, ...], e.g., as
+    returned by Create. Only works for nodes with proxies, i.e.,
+    regular neurons.
+
+    """
+
+    nvp = nest.GetKernelStatus('total_num_virtual_procs')  # step size
+
+    i = 0
+    while i < len(nodes):
+        if nest.GetStatus([nodes[i]], 'local')[0]:
+            yield nodes[i]
+            i += nvp
+        else:
+            i += 1
 
 
 class Logger(object):
@@ -440,7 +462,7 @@ class Logger(object):
 
             self.f = open(fn, 'w')
 
-        return self
+            return self
 
     def log(self, value):
         if nest.Rank() < self.max_rank_log:

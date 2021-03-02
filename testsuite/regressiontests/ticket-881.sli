@@ -37,6 +37,7 @@ Author: Hans Ekkehard Plesser
 (unittest) run
 /unittest using
 
+
 M_ERROR setverbosity
 
 /num_threads 4 def
@@ -45,52 +46,52 @@ M_ERROR setverbosity
 
 /num_expected num_nodes dup mul def   % all to all
 
-% Test 1: pairwise pairwise_bernoulli_on_source
+% Test 1: pairwise convergent
 {
   ResetKernel
-  << /local_num_threads num_threads >> SetKernelStatus
-
+  0 << /local_num_threads num_threads >> SetStatus
+  
   << /elements /iaf_psc_alpha /positions node_pos >> CreateLayer
   dup
-  << /connection_type (pairwise_bernoulli_on_source) >> ConnectLayers
+  << /connection_type (convergent) >> ConnectLayers
 
-  << >> GetConnections length num_expected eq
+  << >> GetConnections length num_expected eq 
 } assert_or_die
 
-% Test 2: pairwise pairwise_bernoulli_on_target
+% Test 2: pairwise divergent
 {
   ResetKernel
-  << /local_num_threads num_threads >> SetKernelStatus
-
+  0 << /local_num_threads num_threads >> SetStatus
+  
   << /elements /iaf_psc_alpha /positions node_pos >> CreateLayer
   dup
-  << /connection_type (pairwise_bernoulli_on_target) >> ConnectLayers
+  << /connection_type (divergent) >> ConnectLayers
 
-  << >> GetConnections length num_expected eq
+  << >> GetConnections length num_expected eq 
 } assert_or_die
 
 % Test 3: fixed fan-in
 {
   ResetKernel
-  << /local_num_threads num_threads >> SetKernelStatus
-
+  0 << /local_num_threads num_threads >> SetStatus
+  
   << /elements /iaf_psc_alpha /positions node_pos >> CreateLayer
   dup
-  << /connection_type (pairwise_bernoulli_on_source) /number_of_connections num_nodes >> ConnectLayers
+  << /connection_type (convergent) /number_of_connections num_nodes >> ConnectLayers
 
-  << >> GetConnections length num_expected eq
+  << >> GetConnections length num_expected eq 
 } assert_or_die
 
 % Test 4: fixed fan-out
 {
   ResetKernel
-  << /local_num_threads num_threads >> SetKernelStatus
-
+  0 << /local_num_threads num_threads >> SetStatus
+  
   << /elements /iaf_psc_alpha /positions node_pos >> CreateLayer
   dup
-  << /connection_type (pairwise_bernoulli_on_target) /number_of_connections num_nodes >> ConnectLayers
+  << /connection_type (divergent) /number_of_connections num_nodes >> ConnectLayers
 
-  << >> GetConnections length num_expected eq
+  << >> GetConnections length num_expected eq 
 } assert_or_die
 
 

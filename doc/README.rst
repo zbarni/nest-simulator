@@ -16,7 +16,7 @@ You will need the NEST source code in your project::
 
 Requirements for building the docs include::
 
- python3
+ python 3.6
  setuptools
  pandoc
  sphinx
@@ -68,7 +68,7 @@ index via the command line
 Local install of user documentation
 --------------------------------------
 
-If you are using Linux or macOS and want to locally install the docs
+If you are using Linux and want to locally install the docs
 and generate the html files, follow the steps below.
 
 Requirements
@@ -82,7 +82,7 @@ Installation
 ~~~~~~~~~~~~
 
 With the following steps a full development environment is installed -
-even the newest NEST release.
+even NEST 2.14.0.
 
 Change to the doc/ folder in the source directory (if you’re not already there).
 
@@ -94,19 +94,24 @@ Create and activate the environment.
 
 ::
 
-   conda env create -f nest_doc_conda_env.yml
+   conda env create -f conda_environment.yml
    conda update -n base conda
-   conda activate nest_doc
+   source activate doc
 
-Now generate the html files. They are then located in ./docs/_build/html.
+Now generate the html files. They are then located in ./docs/build/html.
 
 ::
 
    make html
 
+.. note::
+
+   ``make pdf``, ``make latex`` and other options are possible, too.
+   For more information type ``make help``.
+
 If you want to deactivate and/or delete the build environment:
 
 ::
 
-   conda deactivate
-   conda remove --name nest_doc --all
+   source deactivate
+   conda remove --name documentation --all

@@ -29,32 +29,36 @@ skip_if_without_music
 % data: 2008-10-16
 
 21.0 /T Set % total simulation time
-<< /resolution 0.1 >> SetKernelStatus
+0 << /resolution 0.1 >> SetStatus
 
 10 /N Set % number of spike generators
 
-% create a population containing N parrot_neurons
+% create a subnet containing N parrot_neurons
 % these are the dummy population to send data to the
 % music port
-
-/parrots /parrot_neuron N Create def
+/subnet Create /SN Set
+SN ChangeSubnet
+/parrot_neuron N Create pop
+0 ChangeSubnet
+SN GetGlobalNodes /parrots Set
 
 % create N spike generators each to feed one of the N parrots
-
-/generators /spike_generator N Create def
+/subnet Create /SNG Set
+SNG ChangeSubnet
+/spike_generator N Create pop
+0 ChangeSubnet
+SNG GetGlobalNodes /generators Set
 
 % let the spike generator i
 % produce a spike at 1.0 + 2.0*i ms
 % connect it to parrot neuron i
-
-/i 0 def
 generators
 {
-  << /spike_times [0.5 i 2.0 mul add] >> SetStatus
-  /i i 1 add def
+        /i Set /sg Set
+        sg << /spike_times [0.5 i 2.0 mul add] >> SetStatus
+        sg parrots i get Connect
 }
-forall
-generators parrots << /rule /one_to_one >> Connect
+forallindexed
 
 % create a music_event_out_proxy
 % for the port named "spikes_out"
@@ -67,27 +71,23 @@ SetStatus
 
 % connect the parrot neuron i
 % to the music_event_out_proxy on receiver port (channel) i
-
-/i 0 def
 parrots
 {
-  /src Set
-  [src] cvnodecollection /nc Set
-  nc GetStatus 0 get /local get
-  {
-    nc mo <</rule /one_to_one >> << /receptor_type i >> Connect
-  }
-  if
-
-  /i i 1 add def
+     /i Set
+     /src Set
+     src GetStatus /local get
+     {
+       src mo << /receptor_type i >> Connect
+     }
+     if
 }
-forall
+forallindexed
 
 % print the indexmap
 % mapping from local index to
 % global MUSIC index for each process
 cout (rank=) <- Rank <- ( ) <- pop
-mo GetStatus 0 get /index_map get ==
+mo GetStatus /index_map get ==
 
 % simulate
 T Simulate

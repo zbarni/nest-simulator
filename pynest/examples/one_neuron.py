@@ -45,8 +45,6 @@ See Also
 
 import nest
 import nest.voltage_trace
-import matplotlib.pyplot as plt
-
 nest.set_verbosity("M_WARNING")
 nest.ResetKernel()
 
@@ -57,7 +55,8 @@ nest.ResetKernel()
 # e.g. ``nest.Create('iaf_psc_alpha',5)``
 # Also default parameters of the model can be configured using ``Create``
 # by including a list of parameter dictionaries
-# e.g. `nest.Create("iaf_psc_alpha", params=[{'I_e':376.0}])`.
+# e.g. ``nest.Create("iaf_psc_alpha", params=[{'I_e':376.0}])``
+# or ``nest.Create("voltmeter", [{"withgid": True, "withtime": True}])``.
 # In this example we will configure these parameters in an additional
 # step, which is explained in the third section.
 
@@ -65,19 +64,23 @@ neuron = nest.Create("iaf_psc_alpha")
 voltmeter = nest.Create("voltmeter")
 
 #######################################################################
-# Third, the neuron is configured using `SetStatus()`, which expects
-# a list of node handles and a list of parameter dictionaries.
-# In this example we use `SetStatus()` to configure the constant
-# current input to the neuron.
+# Third, the neuron and the voltmeter are configured using
+# ``SetStatus``, which expects a list of node handles and a list of
+# parameter dictionaries.
+# In this example we use ``SetStatus`` to configure the constant
+# current input to the neuron. We also want to record the global id of
+# the observed nodes and set the withgid flag of the voltmeter to
+# True.
 
-neuron.I_e = 376.0
+nest.SetStatus(neuron, "I_e", 376.0)
+nest.SetStatus(voltmeter, [{"withgid": True}])
 
 #######################################################################
 # Fourth, the neuron is connected to the voltmeter. The command
 # ``Connect`` has different variants. Plain ``Connect`` just takes the
 # handles of pre- and post-synaptic nodes and uses the default values
 # for weight and delay. Note that the connection direction for the voltmeter is
-# reversed compared to the spike recorder, because it observes the
+# reversed compared to the spike detector, because it observes the
 # neuron instead of receiving events from it. Thus, ``Connect``
 # reflects the direction of signal flow in the simulation kernel
 # rather than the physical process of inserting an electrode into the
@@ -93,7 +96,6 @@ nest.Simulate(1000.0)
 
 #######################################################################
 # Finally, we plot the neuron's membrane potential as a function of
-# time and display the plot using pyplot.
+# time.
 
 nest.voltage_trace.from_device(voltmeter)
-plt.show()

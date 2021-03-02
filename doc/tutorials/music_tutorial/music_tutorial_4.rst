@@ -1,7 +1,7 @@
 The pymusic interface
 ---------------------
 
-MUSIC has recently acquired a `plain Python interface <https://github.com/INCF/MUSIC/tree/master/pymusic>`_
+MUSIC has recently aqcuired a `plain Python interface <https://github.com/INCF/MUSIC/tree/master/pymusic>`_
 to go along with the C++ API. If you just want to connect with a simulation
 rather than adding MUSIC capability to a simulator, this Python interface can
 be a lot more convenient than C++. You have Numpy, Scipy and other high-level
@@ -13,15 +13,10 @@ description <music_tutorial_3>` for explanation. Below we will only highlight th
 differences to the C++ API. The full example code is in the
 ``pymusic`` directory in the MUSIC repository.
 
-.. note::
-
-   Please note that MUSIC and the recording backend for Arbor are mutually exclusive
-   and cannot be enabled at the same time.
-
 .. code-block:: python
     :linenos:
 
-    #!/usr/bin/env python3
+    #!/usr/bin/python
     import music
 
     [ ... ]
@@ -43,8 +38,8 @@ differences to the C++ API. The full example code is in the
         tickt = runtime.time()
 
 The sending code is almost completely identical to its C++ counterpart.
-Make sure ``python3`` is used as interpreter for the code (and make sure this
-file is executable). Import ``music`` in the expected way.
+Make sure python is used as interpreter for the code (and make sure this
+file is executable). Import music in the expected way.
 
 Unlike the C++ API, the index is not an object, but simply a label
 indicating global or local indexing. The ``map()`` call
@@ -97,13 +92,15 @@ times and IDs as before. The ``indextype`` is the type of
 the map index for this input and is ``music.Index.LOCAL``
 or ``music.Index.GLOBAL``.
 
-The ``map()`` function keyword for acceptable latency is
+The ``map()`` function keyword for accepatable latency is
 ``accLatency``, and the ``maxBuffered``
 keyword we mentioned in the previous section is, unsurprisingly,
 ``maxBuffered``. The runtime is, again, the same as for
 C++.
 
-As the ``pymusic`` bindings are still quite new, the
-documentation is still lagging behind. This quick introduction should nevertheless be enough for you
-to get going with the bindings. Feel free to ask our `Mailing List <https://www.nest-initiative.org/mailinglist/>`_
-if you need further help.
+As the ``pymusic`` bindings are still quite new the
+documentation is still lagging behind. This quick introduction should
+nevertheless bee enough for you to get going with the bindings. And
+should you need further help, the authors are only an email away.
+
+

@@ -41,11 +41,11 @@ References
 """
 
 ####################################################################################
-# First, we have import all necessary modules.
+#First, we have import all necessary modules.
 
 import nest
 import numpy
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as pl
 import sys
 
 
@@ -53,7 +53,6 @@ import sys
 # We define general simulation parameters
 
 class StructralPlasticityExample:
-
     def __init__(self):
         # simulated time (ms)
         self.t_sim = 200000.0
@@ -63,7 +62,7 @@ class StructralPlasticityExample:
         self.number_inhibitory_neurons = 200
 
         # Structural_plasticity properties
-        self.update_interval = 10000.0
+        self.update_interval = 1000
         self.record_interval = 1000.0
         # rate of background Poisson input
         self.bg_rate = 10000.0
@@ -112,6 +111,7 @@ class StructralPlasticityExample:
             'eta': 0.0,  # Ca2+
             'eps': self.growth_curve_i_e['eps']  # Ca2+
         }
+
 
         # Now we specify the neuron model.
 
@@ -167,7 +167,7 @@ class StructralPlasticityExample:
 # to notice that synaptic elements and connections change on different
 # time scales.
 
-        nest.SetKernelStatus({
+        nest.SetStructuralPlasticityStatus({
             'structural_plasticity_update_interval': self.update_interval,
         })
 
@@ -184,15 +184,15 @@ class StructralPlasticityExample:
         nest.SetDefaults('synapse_ex', {'weight': self.psc_e, 'delay': 1.0})
         nest.CopyModel('static_synapse', 'synapse_in')
         nest.SetDefaults('synapse_in', {'weight': self.psc_i, 'delay': 1.0})
-        nest.SetKernelStatus({
+        nest.SetStructuralPlasticityStatus({
             'structural_plasticity_synapses': {
                 'synapse_ex': {
-                    'synapse_model': 'synapse_ex',
+                    'model': 'synapse_ex',
                     'post_synaptic_element': 'Den_ex',
                     'pre_synaptic_element': 'Axon_ex',
                 },
                 'synapse_in': {
-                    'synapse_model': 'synapse_in',
+                    'model': 'synapse_in',
                     'post_synaptic_element': 'Den_in',
                     'pre_synaptic_element': 'Axon_in',
                 },
@@ -200,9 +200,9 @@ class StructralPlasticityExample:
         })
 
     def create_nodes(self):
-        """
-        Assign growth curves to synaptic elements
-        """
+
+####################################################################################
+# Now we assign the growth curves to the corresponding synaptic elements
 
         synaptic_elements = {
             'Den_ex': self.growth_curve_e_e,
@@ -229,15 +229,15 @@ class StructralPlasticityExample:
         self.nodes_i = nest.Create('iaf_psc_alpha',
                                    self.number_inhibitory_neurons,
                                    {'synaptic_elements': synaptic_elements_i})
-        self.nodes_e.synaptic_elements = synaptic_elements
-        self.nodes_i.synaptic_elements = synaptic_elements_i
+        nest.SetStatus(self.nodes_e, 'synaptic_elements', synaptic_elements)
+        nest.SetStatus(self.nodes_i, 'synaptic_elements', synaptic_elements_i)
 
     def connect_external_input(self):
         """
         We create and connect the Poisson generator for external input
         """
         noise = nest.Create('poisson_generator')
-        noise.rate = self.bg_rate
+        nest.SetStatus(noise, {"rate": self.bg_rate})
         nest.Connect(noise, self.nodes_e, 'all_to_all',
                      {'weight': self.psc_ext, 'delay': 1.0})
         nest.Connect(noise, self.nodes_i, 'all_to_all',
@@ -250,11 +250,12 @@ class StructralPlasticityExample:
 # ``GetStatus`` function to retrieve the value of `Ca` for every neuron in the
 # network and then store the average.
 
+
     def record_ca(self):
-        ca_e = self.nodes_e.Ca,  # Calcium concentration
+        ca_e = nest.GetStatus(self.nodes_e, 'Ca'),  # Calcium concentration
         self.mean_ca_e.append(numpy.mean(ca_e))
 
-        ca_i = self.nodes_i.Ca,  # Calcium concentration
+        ca_i = nest.GetStatus(self.nodes_i, 'Ca'),  # Calcium concentration
         self.mean_ca_i.append(numpy.mean(ca_i))
 
 
@@ -266,9 +267,10 @@ class StructralPlasticityExample:
 # amount of connected excitatory pre-synaptic elements. The same applies for
 # inhibitory connections.
 
+
     def record_connectivity(self):
-        syn_elems_e = self.nodes_e.synaptic_elements
-        syn_elems_i = self.nodes_i.synaptic_elements
+        syn_elems_e = nest.GetStatus(self.nodes_e, 'synaptic_elements')
+        syn_elems_i = nest.GetStatus(self.nodes_i, 'synaptic_elements')
         self.total_connections_e.append(sum(neuron['Axon_ex']['z_connected']
                                             for neuron in syn_elems_e))
         self.total_connections_i.append(sum(neuron['Axon_in']['z_connected']
@@ -279,8 +281,9 @@ class StructralPlasticityExample:
 # We define a function to plot the recorded values
 # at the end of the simulation.
 
+
     def plot_data(self):
-        fig, ax1 = plt.subplots()
+        fig, ax1 = pl.subplots()
         ax1.axhline(self.growth_curve_e_e['eps'],
                     linewidth=4.0, color='#9999FF')
         ax1.plot(self.mean_ca_e, 'b',
@@ -301,7 +304,7 @@ class StructralPlasticityExample:
         ax2.set_ylabel("Connections")
         ax1.legend(loc=1)
         ax2.legend(loc=4)
-        plt.savefig('StructuralPlasticityExample.eps', format='eps')
+        pl.savefig('StructuralPlasticityExample.eps', format='eps')
 
 
 ####################################################################################
@@ -310,6 +313,7 @@ class StructralPlasticityExample:
 # simulate in steps. On each step we record the calcium concentration and the
 # connectivity. At the end of the simulation, the plot of connections and
 # calcium concentration through time is generated.
+
 
     def simulate(self):
         if nest.NumProcesses() > 1:

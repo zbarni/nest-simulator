@@ -41,7 +41,7 @@ class ParrotNeuronTestCase(unittest.TestCase):
         self.source = nest.Create("spike_generator", 1,
                                   {"spike_times": [self.spike_time]})
         self.parrot = nest.Create('parrot_neuron')
-        self.spikes = nest.Create("spike_recorder")
+        self.spikes = nest.Create("spike_detector")
 
         # record source and parrot spikes
         nest.Connect(self.source, self.spikes)
@@ -56,8 +56,7 @@ class ParrotNeuronTestCase(unittest.TestCase):
 
         # get spike from parrot neuron
         events = nest.GetStatus(self.spikes)[0]["events"]
-        post_time = events['times'][
-            events['senders'] == self.parrot[0].get('global_id')]
+        post_time = events['times'][events['senders'] == self.parrot[0]]
 
         # assert spike was repeated at correct time
         assert post_time, "Parrot neuron failed to repeat spike."
@@ -74,8 +73,7 @@ class ParrotNeuronTestCase(unittest.TestCase):
 
         # get spike from parrot neuron, assert it was ignored
         events = nest.GetStatus(self.spikes)[0]["events"]
-        post_time = events['times'][
-            events['senders'] == self.parrot.get('global_id')]
+        post_time = events['times'][events['senders'] == self.parrot[0]]
         assert len(post_time) == 0, \
             "Parrot neuron failed to ignore spike arriving on port 1"
 
@@ -84,7 +82,7 @@ class ParrotNeuronTestCase(unittest.TestCase):
         Check parrot_neuron correctly repeats multiple spikes
 
         The parrot_neuron receives two spikes in a single time step.
-        We check that both spikes are forwarded to the spike_recorder.
+        We check that both spikes are forwarded to the spike_detector.
         """
 
         # connect twice
@@ -94,8 +92,7 @@ class ParrotNeuronTestCase(unittest.TestCase):
 
         # get spikes from parrot neuron, assert two were transmitted
         events = nest.GetStatus(self.spikes)[0]["events"]
-        post_times = events['times'][
-            events['senders'] == self.parrot.get('global_id')]
+        post_times = events['times'][events['senders'] == self.parrot[0]]
         assert len(post_times) == 2 and post_times[0] == post_times[1], \
             "Parrot neuron failed to correctly repeat multiple spikes."
 
@@ -140,15 +137,15 @@ class ParrotNeuronPoissonTestCase(unittest.TestCase):
 
         source = nest.Create('poisson_generator', params={'rate': rate})
         parrots = nest.Create('parrot_neuron', 2)
-        spike_rec = nest.Create('spike_recorder')
+        detect = nest.Create('spike_detector')
 
         nest.Connect(source, parrots[:1], syn_spec={'delay': delay})
         nest.Connect(parrots[:1], parrots[1:], syn_spec={'delay': delay})
-        nest.Connect(parrots[1:], spike_rec)
+        nest.Connect(parrots[1:], detect)
 
         nest.Simulate(t_sim)
 
-        n_spikes = nest.GetStatus(spike_rec)[0]['n_events']
+        n_spikes = nest.GetStatus(detect)[0]['n_events']
         assert n_spikes > spikes_expected - 3 * spikes_std, \
             "parrot_neuron loses spikes."
         assert n_spikes < spikes_expected + 3 * spikes_std, \
@@ -194,8 +191,8 @@ class ParrotNeuronSTDPTestCase(unittest.TestCase):
         nest.Connect(pre_spikes, pre_parrot, syn_spec={"delay": delay})
         nest.Connect(post_spikes, post_parrot, syn_spec={"delay": delay})
 
-        # create spike recorder
-        spikes = nest.Create("spike_recorder")
+        # create spike detector
+        spikes = nest.Create("spike_detector")
         nest.Connect(pre_parrot, spikes)
         nest.Connect(post_parrot, spikes)
 
@@ -203,7 +200,7 @@ class ParrotNeuronSTDPTestCase(unittest.TestCase):
         # thereby spikes transmitted through the stdp connection are
         # not repeated postsynaptically.
         syn_spec = {
-            "synapse_model": "stdp_synapse",
+            "model": "stdp_synapse",
             # set receptor 1 postsynaptically, to not generate extra spikes
             "receptor_type": 1,
         }
@@ -216,13 +213,15 @@ class ParrotNeuronSTDPTestCase(unittest.TestCase):
         # get STDP synapse and weight before protocol
         syn = nest.GetConnections(
             source=pre_parrot, synapse_model="stdp_synapse")
-        w_pre = syn.get('weight')
+        syn_status = nest.GetStatus(syn)[0]
+        w_pre = syn_status['weight']
 
         last_time = max(pre_times[-1], post_times[-1])
         nest.Simulate(last_time + 2 * delay)
 
         # get weight post protocol
-        w_post = syn.get('weight')
+        syn_status = nest.GetStatus(syn)[0]
+        w_post = syn_status['weight']
 
         return w_pre, w_post
 

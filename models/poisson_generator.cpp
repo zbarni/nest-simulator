@@ -27,9 +27,6 @@
 #include "exceptions.h"
 #include "kernel_manager.h"
 
-// Includes from libnestutil:
-#include "dict_util.h"
-
 // Includes from sli:
 #include "dict.h"
 #include "dictutils.h"
@@ -56,9 +53,9 @@ nest::poisson_generator::Parameters_::get( DictionaryDatum& d ) const
 }
 
 void
-nest::poisson_generator::Parameters_::set( const DictionaryDatum& d, Node* node )
+nest::poisson_generator::Parameters_::set( const DictionaryDatum& d )
 {
-  updateValueParam< double >( d, names::rate, rate_, node );
+  updateValue< double >( d, names::rate, rate_ );
   if ( rate_ < 0 )
   {
     throw BadProperty( "The rate cannot be negative." );
@@ -143,9 +140,8 @@ nest::poisson_generator::update( Time const& T, const long from, const long to )
 void
 nest::poisson_generator::event_hook( DSSpikeEvent& e )
 {
-  // Be careful of storing the rng as its own variable. Creation of sharedPTRs
-  // lead to overhead.
-  long n_spikes = V_.poisson_dev_.ldev( kernel().rng_manager.get_rng( get_thread() ) );
+  librandom::RngPtr rng = kernel().rng_manager.get_rng( get_thread() );
+  long n_spikes = V_.poisson_dev_.ldev( rng );
 
   if ( n_spikes > 0 ) // we must not send events with multiplicity 0
   {

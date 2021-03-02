@@ -40,46 +40,44 @@
 namespace nest
 {
 
-/* BeginUserDocs: device, generator
+/** @BeginDocumentation
+@ingroup Devices
+@ingroup generator
 
-Short description
-+++++++++++++++++
-
-Simulate the superimposed spike train of a population of gamma processes
-
-Description
-+++++++++++
+Name: gamma_sup_generator - simulate the superimposed spike train of a
+                            population of gamma process.
+Description:
 
 The gamma_sup_generator generator simulates the pooled spike train of a
 population of neurons firing independently with gamma process statistics.
 
-Parameters
-++++++++++
+Parameters:
 
 The following parameters appear in the element's status dictionary:
-
+\verbatim embed:rst
 ============  ======== =========================================================
  rate         spikes/s Mean firing rate of the component processes,
                        default: 0 spikes/s
- gamma_shape  integer  Shape parameter of component gamma processes, default: 1
+ gamma_shape  integer  Shape paramter of component gamma processes, default: 1
  n_proc       integer  Number of superimposed independent component processes,
                        default: 1
 ============  ======== =========================================================
+\endverbatim
 
-References
-++++++++++
+References:
 
+\verbatim embed:rst
 .. [1] Deger, Helias, Boucsein, Rotter (2011). Statistical properties of
        superimposed stationary spike trains. Journal of Computational
        Neuroscience. DOI: https://doi.org/10.1007/s10827-011-0362-8
+\endverbatim
 
-See also
-++++++++
+Author:
+   Jan 2011, Moritz Deger
 
-ppd_sup_generator, poisson_generator_ps, spike_generator
-
-EndUserDocs */
-
+SeeAlso: ppd_sup_generator, poisson_generator_ps, spike_generator, Device,
+StimulatingDevice
+*/
 class gamma_sup_generator : public DeviceNode
 {
 
@@ -92,18 +90,11 @@ public:
   {
     return false;
   }
-
   bool
   is_off_grid() const
   {
     return false;
-  }
-
-  Name
-  get_element_type() const
-  {
-    return names::stimulator;
-  }
+  } // does not use off_grid events
 
   using Node::event_hook;
 
@@ -143,7 +134,7 @@ private:
   struct Parameters_
   {
     double rate_;               //!< rate of component gamma process [Hz]
-    unsigned long gamma_shape_; //!< gamma shape parameter [1]_
+    unsigned long gamma_shape_; //!< gamma shape parameter [1]
     unsigned long n_proc_;      //!< number of component processes
 
     /**
@@ -156,8 +147,8 @@ private:
 
     Parameters_(); //!< Sets default parameter values
 
-    void get( DictionaryDatum& ) const;             //!< Store current values in dictionary
-    void set( const DictionaryDatum&, Node* node ); //!< Set values from dictionary
+    void get( DictionaryDatum& ) const; //!< Store current values in dictionary
+    void set( const DictionaryDatum& ); //!< Set values from dicitonary
   };
 
   // ------------------------------------------------------------
@@ -234,9 +225,8 @@ gamma_sup_generator::send_test_event( Node& target, rport receptor_type, syninde
     const port p = target.handles_test_event( e, receptor_type );
     if ( p != invalid_port_ )
     {
-      // count number of targets
       ++P_.num_targets_;
-    }
+    } // count number of targets
     return p;
   }
 }
@@ -252,7 +242,7 @@ inline void
 gamma_sup_generator::set_status( const DictionaryDatum& d )
 {
   Parameters_ ptmp = P_; // temporary copy in case of errors
-  ptmp.set( d, this );   // throws if BadProperty
+  ptmp.set( d );         // throws if BadProperty
 
   // We now know that ptmp is consistent. We do not write it back
   // to P_ before we are also sure that the properties to be set

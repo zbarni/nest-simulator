@@ -36,6 +36,9 @@
 // Includes from librandom:
 #include "random_numbers.h"
 
+// Includes from nest:
+#include "sli_neuron.h"
+
 // Includes from nestkernel:
 #include "dynamicloader.h"
 #include "genericmodel_impl.h"
@@ -43,7 +46,6 @@
 #include "nest.h"
 #include "nestmodule.h"
 #include "model_manager_impl.h"
-#include "exceptions.h"
 
 // Includes from sli:
 #include "dict.h"
@@ -77,10 +79,11 @@ sli_logging( const nest::LoggingEvent& e )
   sli_engine->message( static_cast< int >( e.severity ), e.function.c_str(), e.message.c_str() );
 }
 
-int
 #ifndef _IS_PYNEST
+int
 neststartup( int* argc, char*** argv, SLIInterpreter& engine )
 #else
+int
 neststartup( int* argc, char*** argv, SLIInterpreter& engine, std::string modulepath )
 #endif
 {
@@ -131,6 +134,9 @@ neststartup( int* argc, char*** argv, SLIInterpreter& engine, std::string module
   engine.def( "connruledict", nest::kernel().connection_manager.get_connruledict() );
   engine.def( "growthcurvedict", nest::kernel().sp_manager.get_growthcurvedict() );
 
+  // register sli_neuron
+  nest::kernel().model_manager.register_node_model< nest::sli_neuron >( "sli_neuron" );
+
   // now add static modules providing models
   add_static_modules( engine );
 
@@ -174,7 +180,6 @@ neststartup( int* argc, char*** argv, SLIInterpreter& engine, std::string module
 void
 nestshutdown( int exitcode )
 {
-  nest::kernel().finalize();
   nest::kernel().mpi_manager.mpi_finalize( exitcode );
   nest::KernelManager::destroy_kernel_manager();
 }
@@ -195,33 +200,3 @@ CYTHON_unpackConnectionGeneratorDatum( PyObject* obj )
   return ret;
 }
 #endif
-
-#ifdef _IS_PYNEST
-#ifdef HAVE_MPI4PY
-
-#include <mpi4py/mpi4py.h>
-
-void
-set_communicator( PyObject* pyobj )
-{
-  import_mpi4py();
-
-  // If object is not a mpi4py communicator, bail
-  if ( not PyObject_TypeCheck( pyobj, &PyMPIComm_Type ) )
-  {
-    throw nest::KernelException( "set_communicator: argument is not a mpi4py communicator" );
-  }
-
-  nest::kernel().mpi_manager.set_communicator( *PyMPIComm_Get( pyobj ) );
-}
-
-#else // ! HAVE_MPI4PY
-
-void
-set_communicator( PyObject* )
-{
-  throw nest::KernelException( "set_communicator: NEST not compiled with MPI4PY" );
-}
-
-#endif
-#endif //_IS_PYNEST

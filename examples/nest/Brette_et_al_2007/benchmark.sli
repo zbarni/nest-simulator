@@ -83,7 +83,7 @@
 
 %%% FUNCTION SECTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Take spike recorder, find total number of spikes registered,
+% Take spike detector, find total number of spikes registered,
 % return average rate per neuron in Hz.
 % NOTE: If you are running with several MPI processes, this
 %       function only gives an approximation to the true rate.
@@ -91,7 +91,7 @@
 % spike_det ComputeRate -> rate
 /ComputeRate
 {
-  GetStatus 0 get /n_events get /nspikes Set
+  GetStatus /n_events get /nspikes Set
   % We need to guess how many neurons we record from.
   % This assumes an even distribution of nodes across
   % processes, which is ok for the Brette_et_al_2007
@@ -112,11 +112,12 @@ def
 /BuildNetwork
 {
   % set global kernel parameters
+  0
   <<
      /resolution  dt
      /total_num_virtual_procs virtual_processes
      /overwrite_files true
-  >> SetKernelStatus
+  >> SetStatus
 
   tic % start timer on construction
 
@@ -125,31 +126,41 @@ def
   model    model_params    SetDefaults
 
   (Creating excitatory population.) =  % show message
-  /E_neurons model NE Create def
+  /E_net model [ NE ] LayoutNetwork def
 
   (Creating inhibitory population.) =  % show message
-  /I_neurons model NI Create def
+  /I_net model [ NI ] LayoutNetwork def
 
   (Creating excitatory stimulus generator.) =
   /E_stimulus stimulus Create def
   E_stimulus stimulus_params SetStatus
 
-  % one recorder would in principle be enough,
+  % one detector would in principle be enough,
   % but by recording the populations separately,
   % we save ourselves a lot of sorting work later
 
-  (Creating excitatory spike recorder.) =
-  /E_recorder recorder Create def
-  E_recorder recorder_params SetStatus
+  (Creating excitatory spike detector.) =
+  /E_detector detector Create def
+  E_detector detector_params SetStatus
 
-  (Creating inhibitory spike recorder.) =
-  /I_recorder recorder Create def
-  I_recorder recorder_params SetStatus
+  (Creating inhibitory spike detector.) =
+  /I_detector detector Create def
+  I_detector detector_params SetStatus
+
+  % some connecting functions need lists (arrays) over all
+  % neurons they should work on, so we need to extract these
+  % lists from the subnetworks
+
+  % obtain array with GIDs of all excitatory neurons
+  /E_neurons E_net GetLocalNodes def
+
+  % obtain array with GIDs of all inhibitory neurons
+  /I_neurons I_net GetLocalNodes def
 
   % all neurons
   /allNeurons E_neurons I_neurons join def
 
-  /N allNeurons size def
+  /N allNeurons length def
 
   /CE NE epsilon mul iround def %number of incoming excitatory connections
   /CI NI epsilon mul iround def %number of incomining inhibitory connections
@@ -158,7 +169,7 @@ def
   /Nsyn
     CE CI add  % internal synapses
     N mul
-    Nrec 2 mul % "synapses" to spike recorders
+    Nrec 2 mul % "synapses" to spike detectors
     add
     Nstim add  % "synapses" from poisson generator
   def
@@ -194,25 +205,25 @@ def
   %Add external stimulus
 
   (Connecting Poisson stimulus.) =
-  E_stimulus
+  [E_stimulus]
   E_neurons Nstim Take     % pick the first Nstim neurons
   /all_to_all
   /syn_ex
   Connect
 
 
-  % Spike recorders are connected to the first Nrec neurons in each
+  % Spike detectors are connected to the first Nrec neurons in each
   % population.  Since neurons are equal and connectivity is homogeneously
   % randomized, this is equivalent to picking Nrec neurons at random
   % from each population
 
-  (Connecting spike recorders.) =
+  (Connecting spike detectors.) =
 
   E_neurons Nrec Take     % pick the first Nrec neurons
-  E_recorder Connect
+  [E_detector] Connect
 
   I_neurons Nrec Take     % pick the first Nrec neurons
-  I_recorder Connect
+  [I_detector] Connect
 
   % read out time used for building
 
@@ -233,8 +244,8 @@ def
   (Simulation summary) =
   (Number of Neurons : ) =only N =
   (Number of Synapses: ) =only Nsyn =
-  (Excitatory rate   : ) =only E_recorder ComputeRate =only ( Hz) =
-  (Inhibitory rate   : ) =only I_recorder ComputeRate =only ( Hz) =
+  (Excitatory rate   : ) =only E_detector ComputeRate =only ( Hz) =
+  (Inhibitory rate   : ) =only I_detector ComputeRate =only ( Hz) =
   (Building time     : ) =only BuildCPUTime =only ( s) =
   (Simulation time   : ) =only SimCPUTime   =only ( s\n) =
 } def

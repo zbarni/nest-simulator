@@ -1,8 +1,8 @@
-Practical tips
-==============
+Practical Tips
+========================
 
 Start MUSIC using mpirun
-------------------------
+--------------------------
 
     There is an alternative way to start a MUSIC simulation without the ``music``
     binary. The logic for parsing the configuration file is built into
@@ -35,14 +35,8 @@ Start MUSIC using mpirun
     you try to process comand line options in your Pynest script, it is
     very likely you will confuse MUSIC.
 
-    .. note::
-
-       Please note that MUSIC and the recording backend for Arbor are mutually exclusive
-       and cannot be enabled at the same time.
-
-
-Disable messages
-----------------
+Disable Messages
+-----------------
 
     NEST can be quite chatty as it connects things, especially with large
     networks. If we don’t want all that output, we can tell it to display only
@@ -50,7 +44,7 @@ Disable messages
 
     .. code:: python
 
-        nest.set_verbosity("M_ERROR")
+        nest.sli_run("M_ERROR setverbosity")
 
     There is unfortunately no straightforward way to suppress the
     initial welcome message. That is somewhat unfortunate, as they add
@@ -58,7 +52,7 @@ Disable messages
     few hundred cores.
 
 Comma as decimal point
-----------------------
+------------------------
 
     Sorting output spikes may fail if you, like the authors, come from a
     country that uses a comma as decimal separator and runs your computer in
@@ -82,7 +76,7 @@ Comma as decimal point
           cat output-*|LC_ALL=C sort -k 2 -n >output.spikes
 
 Build Autotool-enable project
------------------------------
+------------------------------
 
     To build an Autotool-enabled C/C++ project, you don’t actually need to
     be in the main directory. You can create a subdirectory and build
@@ -108,5 +102,6 @@ Build Autotool-enable project
     almost ashamed to admit just how many years it took before I
     realized you could do this. I sometimes actually kept two copies of
     projects checked out just so I could build a separate debug version.
+
 
 

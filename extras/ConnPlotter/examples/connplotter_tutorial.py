@@ -53,25 +53,19 @@ if using_pyreport:
 
     matplotlib.use("Agg")
 
-# ! Import pyplot to call plt.show() so that pyreport
+# ! Import pylab to call pylab.show() so that pyreport
 # ! can capture figures created. Must come before import
 # ! ConnPlotter so we get the correct show().
-import matplotlib.pyplot as plt
+import pylab
 
-# ! If not using pyreport, disable plt.show() until we reach end of script
+# ! If not using pyreport, disable pylab.show() until we reach end of script
 if not using_pyreport:
-    plt_show = plt.show
+    pylab_show = pylab.show
 
     def nop(s=None):
         pass
 
-    plt.show = nop
-
-# ! Import numpy
-import numpy as np
-
-# ! Import NEST
-import nest
+    pylab.show = nop
 
 # ! Import ConnPlotter and its examples
 import ConnPlotter as cpl
@@ -129,9 +123,6 @@ def showTextTable(connPattern, fileTrunk):
 s_layer, s_conn, s_model = ex.simple()
 
 # ! Create Connection Pattern representation
-# p is evaluated, in case it is a Parameter
-for i in range(len(s_conn)):
-    s_conn[i][2]['p'] = eval(str(s_conn[i][2]['p']))
 s_cp = cpl.ConnectionPattern(s_layer, s_conn)
 
 # ! Show pattern as textual table (we cheat a little and include PDF directly)
@@ -149,7 +140,7 @@ showTextTable(s_cp, 'simple_tt')
 # !  - Excitatory synapses shown in blue, inhibitory in red.
 # !  - Each patch has its own color scale.
 s_cp.plot()
-plt.show()
+pylab.show()
 
 # ! Let us take a look at what this connection pattern table shows:
 # !
@@ -197,7 +188,7 @@ plt.show()
 # ! Full detail, common color scale
 # ! -------------------------------
 s_cp.plot(globalColors=True)
-plt.show()
+pylab.show()
 
 # ! This figure shows the same data as the one above, but now all patches use
 # ! a common color scale, so full intensity color (either red or blue)
@@ -212,7 +203,7 @@ plt.show()
 # ! For each pair of population groups, sum connections of the same type
 # ! across populations.
 s_cp.plot(aggrGroups=True)
-plt.show()
+pylab.show()
 
 # ! In the figure above, all excitatory connections from B to B layer have been
 # ! combined into one patch, as have all inhibitory connections from B to B.
@@ -223,7 +214,7 @@ plt.show()
 # ! Aggregate by groups and synapse models
 # ! --------------------------------------
 s_cp.plot(aggrGroups=True, aggrSyns=True)
-plt.show()
+pylab.show()
 # ! When aggregating across synapse models, excitatory and inhibitory
 # ! connections are combined. By default, excitatory connections are weights
 # ! with +1, inhibitory connections with -1 in the sum. This may yield kernels
@@ -244,14 +235,14 @@ plt.show()
 # !   color scales. The the minimum is the negative of the maximum, so that
 # !   blue and red intesities can be compared.
 s_cp.plot(aggrGroups=True, aggrSyns=True, globalColors=True)
-plt.show()
+pylab.show()
 
 # ! - We can explicitly set the limits of the color scale; if values exceeding
 # !   the limits are present, this is indicated by an arrowhead at the end of
 # !   the colorbar. User-defined color limits need not be symmetric about 0.
 s_cp.plot(aggrGroups=True, aggrSyns=True, globalColors=True,
           colorLimits=[-2, 3])
-plt.show()
+pylab.show()
 
 # ! Save pattern to file
 # ! --------------------
@@ -267,17 +258,20 @@ plt.show()
 
 # ! Build network in NEST
 # ! ---------------------
+import nest
+import nest.topology as topo
+
 # ! Create models
 for model in s_model:
     nest.CopyModel(model[0], model[1], model[2])
 
 # ! Create layers, store layer info in Python variable
 for layer in s_layer:
-    exec('{} = nest.Create(layer[1], positions=nest.spatial.grid(layer[2], extent=layer[3]))'.format(layer[0]))
+    exec ('%s = topo.CreateLayer(layer[1])' % layer[0])
 
 # ! Create connections, need to insert variable names
 for conn in s_conn:
-    eval('nest.Connect({}, {}, conn[2], conn[3])'.format(conn[0], conn[1]))
+    eval('topo.ConnectLayers(%s,%s,conn[2])' % (conn[0], conn[1]))
 
 nest.Simulate(10)
 # ! **Ooops:*** Nothing happened? Well, it did, but pyreport cannot capture the
@@ -288,60 +282,64 @@ nest.Simulate(10)
 # ! :::::::::::::::::::::::::::::::::::::::::::
 # ! The following block of messy and makeshift code plots the targets of the
 # ! center neuron of the B/E population in the B/E and the B/I populations.
-E_ctr = nest.FindCenterElement(RG_E)
+B_top = nest.GetStatus(RG, 'topology')[0]
+ctr_id = topo.GetElement(RG,
+                         [int(B_top['rows'] / 2), int(B_top['columns'] / 2)])
+
+# find excitatory element in B
+E_id = [gid for gid in ctr_id
+        if nest.GetStatus([gid], 'model')[0] == 'E']
 
 # get all targets, split into excitatory and inhibitory
-Econns = nest.GetConnections(E_ctr, RG_E, synapse_model='static_synapse')
-Etgts = Econns.get('target')
-Iconns = nest.GetConnections(E_ctr, RG_I, synapse_model='static_synapse')
-Itgts = Iconns.get('target')
+alltgts = nest.GetStatus(
+    nest.GetConnections(E_id, synapse_model='static_synapse'), 'target')
+Etgts = [t for t in alltgts if nest.GetStatus([t], 'model')[0] == 'E']
+Itgts = [t for t in alltgts if nest.GetStatus([t], 'model')[0] == 'I']
 
 # obtain positions of targets
-Etpos = np.array([nest.GetPosition(RG_E[RG_E.index(tnode_id)]) for tnode_id in Etgts])
-Itpos = np.array([nest.GetPosition(RG_I[RG_I.index(tnode_id)]) for tnode_id in Itgts])
+Etpos = tuple(zip(*topo.GetPosition(Etgts)))
+Itpos = tuple(zip(*topo.GetPosition(Itgts)))
 
 # plot excitatory
-plt.clf()
-plt.subplot(121)
-plt.scatter(Etpos[:, 0], Etpos[:, 1])
-ctrpos = nest.GetPosition(E_ctr)
-
-ax = plt.gca()
-ax.add_patch(plt.Circle(ctrpos, radius=0.02, zorder=99,
-                        fc='r', alpha=0.4, ec='none'))
+pylab.clf()
+pylab.subplot(121)
+pylab.scatter(Etpos[0], Etpos[1])
+ctrpos = pylab.array(topo.GetPosition(E_id)[0])
+ax = pylab.gca()
+ax.add_patch(pylab.Circle(ctrpos, radius=0.02, zorder=99,
+                          fc='r', alpha=0.4, ec='none'))
 ax.add_patch(
-    plt.Rectangle(ctrpos + np.array((-0.4, -0.2)), 0.8, 0.4, zorder=1,
-                  fc='none', ec='r', lw=3))
+    pylab.Rectangle(ctrpos + pylab.array((-0.4, -0.2)), 0.8, 0.4, zorder=1,
+                    fc='none', ec='r', lw=3))
 ax.add_patch(
-    plt.Rectangle(ctrpos + np.array((-0.2, -0.4)), 0.4, 0.8, zorder=1,
-                  fc='none', ec='r', lw=3))
+    pylab.Rectangle(ctrpos + pylab.array((-0.2, -0.4)), 0.4, 0.8, zorder=1,
+                    fc='none', ec='r', lw=3))
 ax.add_patch(
-    plt.Rectangle(ctrpos + np.array((-0.5, -0.5)), 1.0, 1.0, zorder=1,
-                  fc='none', ec='k', lw=3))
+    pylab.Rectangle(ctrpos + pylab.array((-0.5, -0.5)), 1.0, 1.0, zorder=1,
+                    fc='none', ec='k', lw=3))
 ax.set(aspect='equal', xlim=[-0.5, 0.5], ylim=[-0.5, 0.5],
        xticks=[], yticks=[])
 
 # plot inhibitory
-plt.subplot(122)
-
-plt.scatter(Itpos[:, 0], Itpos[:, 1])
-ctrpos = nest.GetPosition(E_ctr)
-ax = plt.gca()
-ax.add_patch(plt.Circle(ctrpos, radius=0.02, zorder=99,
-                        fc='r', alpha=0.4, ec='none'))
-ax.add_patch(plt.Circle(ctrpos, radius=0.1, zorder=2,
-                        fc='none', ec='r', lw=2, ls='dashed'))
-ax.add_patch(plt.Circle(ctrpos, radius=0.2, zorder=2,
-                        fc='none', ec='r', lw=2, ls='dashed'))
-ax.add_patch(plt.Circle(ctrpos, radius=0.3, zorder=2,
-                        fc='none', ec='r', lw=2, ls='dashed'))
-ax.add_patch(plt.Circle(ctrpos, radius=0.5, zorder=2,
-                        fc='none', ec='r', lw=3))
-ax.add_patch(plt.Rectangle((-0.5, -0.5), 1.0, 1.0, zorder=1,
-                           fc='none', ec='k', lw=3))
+pylab.subplot(122)
+pylab.scatter(Itpos[0], Itpos[1])
+ctrpos = topo.GetPosition(E_id)[0]
+ax = pylab.gca()
+ax.add_patch(pylab.Circle(ctrpos, radius=0.02, zorder=99,
+                          fc='r', alpha=0.4, ec='none'))
+ax.add_patch(pylab.Circle(ctrpos, radius=0.1, zorder=2,
+                          fc='none', ec='r', lw=2, ls='dashed'))
+ax.add_patch(pylab.Circle(ctrpos, radius=0.2, zorder=2,
+                          fc='none', ec='r', lw=2, ls='dashed'))
+ax.add_patch(pylab.Circle(ctrpos, radius=0.3, zorder=2,
+                          fc='none', ec='r', lw=2, ls='dashed'))
+ax.add_patch(pylab.Circle(ctrpos, radius=0.5, zorder=2,
+                          fc='none', ec='r', lw=3))
+ax.add_patch(pylab.Rectangle((-0.5, -0.5), 1.0, 1.0, zorder=1,
+                             fc='none', ec='k', lw=3))
 ax.set(aspect='equal', xlim=[-0.5, 0.5], ylim=[-0.5, 0.5],
        xticks=[], yticks=[])
-plt.show()
+pylab.show()
 
 # ! Thick red lines mark the mask, dashed red lines to the right one, two and
 # ! three standard deviations. The sender location is marked by the red spot
@@ -356,10 +354,6 @@ plt.show()
 
 # ! Setup and tabular display
 c_layer, c_conn, c_model = ex.complex()
-# p is evaluated, in case it is a Parameter
-for i in range(len(c_conn)):
-    c_conn[i][2]['p'] = eval(str(c_conn[i][2]['p']))
-
 c_cp = cpl.ConnectionPattern(c_layer, c_conn)
 showTextTable(c_cp, 'complex_tt')
 # $ \centerline{\includegraphics{complex_tt.pdf}}
@@ -367,7 +361,7 @@ showTextTable(c_cp, 'complex_tt')
 # ! Pattern in full detail
 # ! ----------------------
 c_cp.plot()
-plt.show()
+pylab.show()
 
 # ! Note the following differences to the simple pattern case:
 # !
@@ -387,7 +381,7 @@ plt.show()
 # ! Full detail, common color scale
 # ! -------------------------------
 c_cp.plot(globalColors=True)
-plt.show()
+pylab.show()
 
 # ! As above, but now with a common color scale.
 # ! **NB:** The patch for the B/I to B/I connection may look empty, but it
@@ -403,7 +397,7 @@ plt.show()
 # ! Full detail, explicit color limits
 # ! ----------------------------------
 c_cp.plot(colorLimits=[0, 1])
-plt.show()
+pylab.show()
 
 # ! As above, but the common color scale is now given explicitly.
 # ! The arrow at the right end of the color scale indicates that the values
@@ -421,7 +415,7 @@ plt.show()
 # !    (inhibitory) via white (zero) to blue (excitatory).
 # !  - Each patch has its own color scale
 c_cp.plot(aggrSyns=True)
-plt.show()
+pylab.show()
 # !
 # ! - AMPA and NMDA connections from B/E to B/E are now combined to form a
 # !   cross.
@@ -430,7 +424,7 @@ plt.show()
 # ! Aggregate by population group
 # ! ------------------------------
 c_cp.plot(aggrGroups=True)
-plt.show()
+pylab.show()
 # ! This is in many ways orthogonal to aggregation by synapse model:
 # ! We keep synapse types separat, while we combine across populations. Thus,
 # ! we have added the horizonal bar (B/E to B/E, row 3) with the spot
@@ -439,7 +433,7 @@ plt.show()
 # ! Aggregate by population group and synapse model
 # ! -----------------------------------------------------------------
 c_cp.plot(aggrGroups=True, aggrSyns=True)
-plt.show()
+pylab.show()
 # ! All connection are combined for each pair of sender/target layer.
 
 
@@ -461,12 +455,12 @@ c_cp_45 = cpl.ConnectionPattern(c_layer, c_conn, intensity='tcd',
 # ! V_m = -75 mV
 # ! ::::::::::::::
 c_cp_75.plot(colorLimits=[0, 150])
-plt.show()
+pylab.show()
 
 # ! V_m = -45 mV
 # ! ::::::::::::::
 c_cp_45.plot(colorLimits=[0, 150])
-plt.show()
+pylab.show()
 # ! Note that the NMDA projection virtually vanishes for V_m=-75mV, but is very
 # ! strong for V_m=-45mV. GABA_A and GABA_B projections are also stronger,
 # ! while AMPA is weaker for V_m=-45mV.
@@ -502,7 +496,7 @@ showTextTable(nd_cp, 'non_dale_tt')
 # $ \centerline{\includegraphics{non_dale_tt.pdf}}
 
 nd_cp.plot()
-plt.show()
+pylab.show()
 
 # ! Note that we now have red and blue patches side by side, as the same
 # ! population can make excitatory and inhibitory connections.
@@ -567,16 +561,16 @@ cinv_syns = ((cpl.SynType('GABA_B', -1, 'm'), cpl.SynType('GABA_A', -1, 'r')),
              (cpl.SynType('NMDA', 1, 'g'), cpl.SynType('AMPA', 1, 'b')))
 cinv_cp = cpl.ConnectionPattern(c_layer, c_conn, synTypes=cinv_syns)
 cinv_cp.plot()
-plt.show()
+pylab.show()
 
 # ! Notice that on each row the synapses are exchanged compared to the original
 # ! figure above. When displaying by layer, also the rows have traded place:
 cinv_cp.plot(aggrGroups=True)
-plt.show()
+pylab.show()
 
 # ! Totals are not affected:
 cinv_cp.plot(aggrGroups=True, aggrSyns=True)
-plt.show()
+pylab.show()
 
 # ! Weighting of synapse types in ``totals`` mode
 # ! :::::::::::::::::::::::::::::::::::::::::::::
@@ -595,17 +589,17 @@ cw2_cp = cpl.ConnectionPattern(c_layer, c_conn, synTypes=cw2_syns)
 
 # ! We first plot them both in population mode
 cw1_cp.plot(aggrSyns=True)
-plt.show()
+pylab.show()
 
 cw2_cp.plot(aggrSyns=True)
-plt.show()
+pylab.show()
 
 # ! Finally, we plot them aggregating across groups and synapse models
 cw1_cp.plot(aggrGroups=True, aggrSyns=True)
-plt.show()
+pylab.show()
 
 cw2_cp.plot(aggrGroups=True, aggrSyns=True)
-plt.show()
+pylab.show()
 
 # ! Alternative colors for synapse patches
 # ! ::::::::::::::::::::::::::::::::::::::
@@ -616,10 +610,10 @@ plt.show()
 # ! mode, we use that mode for display here.
 cc_syns = (
     (cpl.SynType('AMPA', 1, 'maroon'), cpl.SynType('NMDA', 1, (0.9, 0.5, 0))),
-    (cpl.SynType('GABA_A', -1, '0.7'), cpl.SynType('GABA_B', 1, plt.cm.hsv)))
+    (cpl.SynType('GABA_A', -1, '0.7'), cpl.SynType('GABA_B', 1, pylab.cm.hsv)))
 cc_cp = cpl.ConnectionPattern(c_layer, c_conn, synTypes=cc_syns)
 cc_cp.plot(aggrGroups=True)
-plt.show()
+pylab.show()
 # ! We get the following colors:
 # !
 # ! AMPA     brownish
@@ -631,15 +625,15 @@ plt.show()
 # ! shown to the "bad" color of the colormap, usually the "bottom" color in the
 # ! map. To let points outside the mask appear in white, set the bad color of
 # ! the colormap; unfortunately, this modifies the colormap.
-plt.cm.hsv.set_bad(cpl.colormaps.bad_color)
+pylab.cm.hsv.set_bad(cpl.colormaps.bad_color)
 ccb_syns = (
     (cpl.SynType('AMPA', 1, 'maroon'),
      cpl.SynType('NMDA', 1, (0.9, 0.5, 0.1))),
     (cpl.SynType('GABA_A', -1, '0.7'),
-     cpl.SynType('GABA_B', 1, plt.cm.hsv)))
+     cpl.SynType('GABA_B', 1, pylab.cm.hsv)))
 ccb_cp = cpl.ConnectionPattern(c_layer, c_conn, synTypes=ccb_syns)
 ccb_cp.plot(aggrGroups=True)
-plt.show()
+pylab.show()
 
 # ! Other configuration options
 # ! ---------------------------
@@ -689,7 +683,7 @@ cpl.plotParams.legend_tick_format = '%.1f pA'
 
 cx_cp = cpl.ConnectionPattern(c_layer, c_conn)
 cx_cp.plot(colorLimits=[0, 2])
-plt.show()
+pylab.show()
 
 # ! Several more options are available to control the format of the color bars
 # ! (they all are members of plotParams):
@@ -707,15 +701,15 @@ plt.show()
 # ! Note that left and right margin combined are 70mm wide, so only 50mm are
 # ! left for the actual CPT.
 cx_cp.plot(fixedWidth=120)
-plt.show()
+pylab.show()
 
 # ! If not using pyreport, we finally show and block
 if not using_pyreport:
     print("")
     print("The connplotter_tutorial script is done. " +
-          "Call plt.show() and enjoy the figures!")
+          "Call pylab.show() and enjoy the figures!")
     print(
         "You may need to close all figures manually " +
         "to get the Python prompt back.")
     print("")
-    plt.show = plt_show
+    pylab.show = pylab_show

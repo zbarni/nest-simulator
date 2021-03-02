@@ -56,28 +56,27 @@ namespace nest
  */
 extern "C" int iaf_cond_alpha_dynamics( double, const double*, double*, void* );
 
-/* BeginUserDocs: neuron, integrate-and-fire, conductance-based
+/** @BeginDocumentation
+@ingroup Neurons
+@ingroup iaf
+@ingroup cond
 
-Short description
-+++++++++++++++++
+Name: iaf_cond_alpha - Simple conductance based leaky integrate-and-fire neuron
+                       model.
 
-Simple conductance based leaky integrate-and-fire neuron model
-
-Description
-+++++++++++
+Description:
 
 iaf_cond_alpha is an implementation of a spiking neuron using IAF dynamics with
 conductance-based synapses. Incoming spike events induce a post-synaptic change
 of conductance modelled by an alpha function. The alpha function
-is normalized such that an event of weight 1.0 results in a peak current of 1 nS
-at :math:`t = \tau_{syn}`.
+is normalised such that an event of weight 1.0 results in a peak current of 1 nS
+at \f$ t = tau_{syn} \f$.
 
-Parameters
-++++++++++
+Parameters:
 
 The following parameters can be set in the status dictionary.
 
-
+\verbatim embed:rst
 =========== ======= ===========================================================
  V_m        mV      Membrane potential
  E_L        mV      Leak reversal potential
@@ -92,17 +91,11 @@ The following parameters can be set in the status dictionary.
  tau_syn_in ms      Rise time of the inhibitory synaptic alpha function
  I_e        pA      Constant input current
 =========== ======= ===========================================================
+\endverbatim
 
+Sends: SpikeEvent
 
-Sends
-+++++
-
-SpikeEvent
-
-Receives
-++++++++
-
-SpikeEvent, CurrentEvent, DataLoggingRequest
+Receives: SpikeEvent, CurrentEvent, DataLoggingRequest
 
 Remarks:
 
@@ -113,10 +106,9 @@ Remarks:
         inputs to the two synapses by the sign of the synaptic weight.
         It would be better to use receptor_types, cf iaf_cond_alpha_mc.
 
+References:
 
-References
-++++++++++
-
+\verbatim embed:rst
 .. [1] Meffin H, Burkitt AN, Grayden DB (2004). An analytical
        model for the large, fluctuating synaptic conductance state typical of
        neocortical neurons in vivo. Journal of Computational Neuroscience,
@@ -131,14 +123,13 @@ References
        the fluctuation- driven regime. Journal of Neuroscience,
        24(10):2345-2356
        DOI: https://doi.org/10.1523/JNEUROSCI.3349-03.2004
+\endverbatim
 
-See also
-++++++++
+Author: Schrader, Plesser
 
-iaf_cond_exp, iaf_cond_alpha_mc
+SeeAlso: iaf_cond_exp, iaf_cond_alpha_mc
 
-EndUserDocs */
-
+*/
 class iaf_cond_alpha : public Archiving_Node
 {
 
@@ -208,8 +199,8 @@ private:
 
     Parameters_(); //!< Set default parameter values
 
-    void get( DictionaryDatum& ) const;             //!< Store current values in dictionary
-    void set( const DictionaryDatum&, Node* node ); //!< Set values from dicitonary
+    void get( DictionaryDatum& ) const; //!< Store current values in dictionary
+    void set( const DictionaryDatum& ); //!< Set values from dicitonary
   };
 
   // State variables class --------------------------------------------
@@ -227,6 +218,7 @@ private:
 public:
   struct State_
   {
+
     //! Symbolic indices to the elements of the state vector y
     enum StateVecElems
     {
@@ -254,7 +246,7 @@ public:
      * Set state from values in dictionary.
      * Requires Parameters_ as argument to, eg, check bounds.'
      */
-    void set( const DictionaryDatum&, const Parameters_&, Node* );
+    void set( const DictionaryDatum&, const Parameters_& );
   };
 
 private:
@@ -263,8 +255,8 @@ private:
   /**
    * Buffers of the model.
    * Buffers are on par with state variables in terms of persistence,
-   * i.e., initalized only upon first Simulate call after ResetKernel,
-   * but are implementation details hidden from the user.
+   * i.e., initalized only upon first Simulate call after ResetKernel
+   * or ResetNetwork, but are implementation details hidden from the user.
    */
   struct Buffers_
   {
@@ -285,9 +277,10 @@ private:
     gsl_odeiv_evolve* e_;  //!< evolution function
     gsl_odeiv_system sys_; //!< struct describing system
 
-    // Since IntergrationStep_ is initialized with step_, and the resolution
-    // cannot change after nodes have been created, it is safe to place both
-    // here.
+    // IntergrationStep_ should be reset with the neuron on ResetNetwork,
+    // but remain unchanged during calibration. Since it is initialized with
+    // step_, and the resolution cannot change after nodes have been created,
+    // it is safe to place both here.
     double step_;            //!< step size in ms
     double IntegrationStep_; //!< current integration time step, updated by GSL
 
@@ -408,10 +401,10 @@ iaf_cond_alpha::get_status( DictionaryDatum& d ) const
 inline void
 iaf_cond_alpha::set_status( const DictionaryDatum& d )
 {
-  Parameters_ ptmp = P_;     // temporary copy in case of errors
-  ptmp.set( d, this );       // throws if BadProperty
-  State_ stmp = S_;          // temporary copy in case of errors
-  stmp.set( d, ptmp, this ); // throws if BadProperty
+  Parameters_ ptmp = P_; // temporary copy in case of errors
+  ptmp.set( d );         // throws if BadProperty
+  State_ stmp = S_;      // temporary copy in case of errors
+  stmp.set( d, ptmp );   // throws if BadProperty
 
   // We now know that (ptmp, stmp) are consistent. We do not
   // write them back to (P_, S_) before we are also sure that

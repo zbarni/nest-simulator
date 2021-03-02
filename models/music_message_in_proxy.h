@@ -35,9 +35,6 @@
 #include <string>
 #include <vector>
 
-// Includes from libnestutil:
-#include "dict_util.h"
-
 // External includes:
 #include <music.hh>
 
@@ -51,15 +48,14 @@
 
 namespace nest
 {
-/* BeginUserDocs: device, MUSIC
+/** @BeginDocumentation
+@ingroup Devices
+@ingroup music
 
-Short description
-+++++++++++++++++
+Name: music_message_in_proxy - A device which receives message strings from
+                              MUSIC.
 
-A device which receives message strings from MUSIC
-
-Description
-+++++++++++
+Description:
 
 A music_message_in_proxy can be used to receive message strings from
 remote MUSIC applications in NEST.
@@ -69,15 +65,11 @@ applications. The music_message_in_proxy represents an input port to
 which MUSIC can connect a message source. The music_message_in_proxy
 can queried using GetStatus to retrieve the messages.
 
-To clear the data array, the parameter *n_messages* can be set to 0.
-
-This model is only available if NEST was compiled with MUSIC.
-
-Parameters
-++++++++++
+Parameters:
 
 The following properties are available in the status dictionary:
 
+\verbatim embed:rst
 ============ ======= =========================================================
  port_name   string  The name of the MUSIC input port to listen to (default:
                      message_in)
@@ -90,14 +82,27 @@ The following properties are available in the status dictionary:
  published   boolean A bool indicating if the port has been already published
                      with MUSIC
 ============ ======= =========================================================
+\endverbatim
 
-See also
-++++++++
+The parameter port_name can be set using SetStatus. The field n_messages
+can be set to 0 to clear the data arrays.
 
-music_event_out_proxy, music_event_in_proxy, music_cont_in_proxy
+Examples:
 
-EndUserDocs */
+    /music_message_in_proxy Create /mmip Set
+    10 Simulate
+    mmip GetStatus /data get /messages get 0 get /command Set
+    (Executing command ') command join ('.) join =
+    command cvx exec
 
+Author: Jochen Martin Eppler
+
+FirstVersion: July 2010
+
+Availability: Only when compiled with MUSIC
+
+SeeAlso: music_event_out_proxy, music_event_in_proxy, music_cont_in_proxy
+*/
 class MsgHandler : public MUSIC::MessageHandler
 {
   ArrayDatum messages;                 //!< The buffer for incoming message
@@ -180,7 +185,7 @@ private:
     /**
      * Set values from dicitonary.
      */
-    void set( const DictionaryDatum&, State_&, Node* );
+    void set( const DictionaryDatum&, State_& );
   };
 
   // ------------------------------------------------------------
@@ -195,7 +200,7 @@ private:
 
     void get( DictionaryDatum& ) const; //!< Store current values in dictionary
     //! Set values from dictionary
-    void set( const DictionaryDatum&, const Parameters_&, Node* );
+    void set( const DictionaryDatum&, const Parameters_& );
   };
 
   // ------------------------------------------------------------
@@ -232,14 +237,14 @@ music_message_in_proxy::get_status( DictionaryDatum& d ) const
 inline void
 music_message_in_proxy::set_status( const DictionaryDatum& d )
 {
-  Parameters_ ptmp = P_;   // temporary copy in case of errors
-  ptmp.set( d, S_, this ); // throws if BadProperty
+  Parameters_ ptmp = P_; // temporary copy in case of errors
+  ptmp.set( d, S_ );     // throws if BadProperty
 
   State_ stmp = S_;
-  stmp.set( d, P_, this ); // throws if BadProperty
+  stmp.set( d, P_ ); // throws if BadProperty
 
   long nm = 0;
-  if ( updateValueParam< long >( d, names::n_messages, nm, this ) )
+  if ( updateValue< long >( d, names::n_messages, nm ) )
   {
     if ( nm == 0 )
     {

@@ -132,7 +132,8 @@ nest::NodeWithProxiesExpected::message() const
 {
   std::ostringstream out;
   out << "Nest expected a node with proxies (eg normal model neuron),"
-         "but the node with id " << id_ << " is not a node without proxies, e.g., a device.";
+         "but the node with id " << id_ << " is not a node without proxies, "
+                                           "e.g., a subnet or device.";
   return out.str();
 }
 
@@ -212,7 +213,7 @@ nest::UnexpectedEvent::message() const
     return std::string(
       "Target node cannot handle input event.\n"
       "    A common cause for this is an attempt to connect recording devices incorrectly.\n"
-      "    Note that recorders such as spike recorders must be connected as\n\n"
+      "    Note that detectors such as spike detectors must be connected as\n\n"
       "        nest.Connect(neurons, spike_det)\n\n"
       "    while meters such as voltmeters must be connected as\n\n"
       "        nest.Connect(meter, neurons) " );
@@ -268,6 +269,20 @@ std::string
 nest::DistributionError::message() const
 {
   return std::string();
+}
+
+std::string
+nest::SubnetExpected::message() const
+{
+  return std::string();
+}
+
+std::string
+nest::SimulationError::message() const
+{
+  return std::string(
+    "One or more nodes reported an error. Please check the output preceeding "
+    "this message." );
 }
 
 std::string
@@ -393,32 +408,6 @@ nest::NumericalInstability::message() const
 }
 
 std::string
-nest::UnmatchedSteps::message() const
-{
-  std::ostringstream msg;
-  msg << "Steps for backend device don't match NEST steps: "
-      << "steps expected: " << total_steps_ << " "
-      << "steps executed: " << current_step_ << ".";
-  return msg.str();
-}
-
-std::string
-nest::BackendPrepared::message() const
-{
-  std::ostringstream msg;
-  msg << "Backend " << backend_ << " may not be prepare()'d multiple times.";
-  return msg.str();
-}
-
-std::string
-nest::BackendNotPrepared::message() const
-{
-  std::ostringstream msg;
-  msg << "Backend " << backend_ << " may not be cleanup()'d without preparation (multiple cleanups?).";
-  return msg.str();
-}
-
-std::string
 nest::KeyError::message() const
 {
   std::ostringstream msg;
@@ -432,16 +421,4 @@ std::string
 nest::InternalError::message() const
 {
   return msg_;
-}
-
-std::string
-nest::LayerExpected::message() const
-{
-  return std::string();
-}
-
-std::string
-nest::LayerNodeExpected::message() const
-{
-  return std::string();
 }

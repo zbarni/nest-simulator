@@ -26,7 +26,6 @@
 #include <limits>
 
 // Includes from libnestutil:
-#include "dict_util.h"
 #include "numerics.h"
 #include "propagator_stability.h"
 
@@ -115,15 +114,15 @@ nest::iaf_psc_exp::Parameters_::get( DictionaryDatum& d ) const
 }
 
 double
-nest::iaf_psc_exp::Parameters_::set( const DictionaryDatum& d, Node* node )
+nest::iaf_psc_exp::Parameters_::set( const DictionaryDatum& d )
 {
   // if E_L_ is changed, we need to adjust all variables defined relative to
   // E_L_
   const double ELold = E_L_;
-  updateValueParam< double >( d, names::E_L, E_L_, node );
+  updateValue< double >( d, names::E_L, E_L_ );
   const double delta_EL = E_L_ - ELold;
 
-  if ( updateValueParam< double >( d, names::V_reset, V_reset_, node ) )
+  if ( updateValue< double >( d, names::V_reset, V_reset_ ) )
   {
     V_reset_ -= E_L_;
   }
@@ -132,7 +131,7 @@ nest::iaf_psc_exp::Parameters_::set( const DictionaryDatum& d, Node* node )
     V_reset_ -= delta_EL;
   }
 
-  if ( updateValueParam< double >( d, names::V_th, Theta_, node ) )
+  if ( updateValue< double >( d, names::V_th, Theta_ ) )
   {
     Theta_ -= E_L_;
   }
@@ -141,12 +140,12 @@ nest::iaf_psc_exp::Parameters_::set( const DictionaryDatum& d, Node* node )
     Theta_ -= delta_EL;
   }
 
-  updateValueParam< double >( d, names::I_e, I_e_, node );
-  updateValueParam< double >( d, names::C_m, C_, node );
-  updateValueParam< double >( d, names::tau_m, Tau_, node );
-  updateValueParam< double >( d, names::tau_syn_ex, tau_ex_, node );
-  updateValueParam< double >( d, names::tau_syn_in, tau_in_, node );
-  updateValueParam< double >( d, names::t_ref, t_ref_, node );
+  updateValue< double >( d, names::I_e, I_e_ );
+  updateValue< double >( d, names::C_m, C_ );
+  updateValue< double >( d, names::tau_m, Tau_ );
+  updateValue< double >( d, names::tau_syn_ex, tau_ex_ );
+  updateValue< double >( d, names::tau_syn_in, tau_in_ );
+  updateValue< double >( d, names::t_ref, t_ref_ );
   if ( V_reset_ >= Theta_ )
   {
     throw BadProperty( "Reset potential must be smaller than threshold." );
@@ -186,9 +185,9 @@ nest::iaf_psc_exp::State_::get( DictionaryDatum& d, const Parameters_& p ) const
 }
 
 void
-nest::iaf_psc_exp::State_::set( const DictionaryDatum& d, const Parameters_& p, double delta_EL, Node* node )
+nest::iaf_psc_exp::State_::set( const DictionaryDatum& d, const Parameters_& p, double delta_EL )
 {
-  if ( updateValueParam< double >( d, names::V_m, V_m_, node ) )
+  if ( updateValue< double >( d, names::V_m, V_m_ ) )
   {
     V_m_ -= p.E_L_;
   }
@@ -326,9 +325,8 @@ nest::iaf_psc_exp::update( const Time& origin, const long from, const long to )
     }
     else
     {
-      // neuron is absolute refractory
       --S_.r_ref_;
-    }
+    } // neuron is absolute refractory
 
     // exponential decaying PSCs
     S_.i_syn_ex_ *= V_.P11ex_;

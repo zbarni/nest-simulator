@@ -28,7 +28,6 @@
 #include <limits>
 
 // Includes from libnestutil:
-#include "dict_util.h"
 #include "numerics.h"
 
 // Includes from nestkernel:
@@ -61,6 +60,7 @@ RecordablesMap< sinusoidal_poisson_generator >::create()
  * ---------------------------------------------------------------- */
 
 nest::sinusoidal_poisson_generator::Parameters_::Parameters_()
+
   : om_( 0.0 )        // radian/ms
   , phi_( 0.0 )       // radian
   , rate_( 0.0 )      // spikes/ms
@@ -134,9 +134,7 @@ nest::sinusoidal_poisson_generator::State_::get( DictionaryDatum& ) const
 }
 
 void
-nest::sinusoidal_poisson_generator::Parameters_::set( const DictionaryDatum& d,
-  const sinusoidal_poisson_generator& n,
-  Node* node )
+nest::sinusoidal_poisson_generator::Parameters_::set( const DictionaryDatum& d, const sinusoidal_poisson_generator& n )
 {
   if ( not n.is_model_prototype() && d->known( names::individual_spike_trains ) )
   {
@@ -147,22 +145,22 @@ nest::sinusoidal_poisson_generator::Parameters_::set( const DictionaryDatum& d,
 
   updateValue< bool >( d, names::individual_spike_trains, individual_spike_trains_ );
 
-  if ( updateValueParam< double >( d, names::rate, rate_, node ) )
+  if ( updateValue< double >( d, names::rate, rate_ ) )
   {
     rate_ /= 1000.0; // scale to ms^-1
   }
 
-  if ( updateValueParam< double >( d, names::frequency, om_, node ) )
+  if ( updateValue< double >( d, names::frequency, om_ ) )
   {
     om_ *= 2.0 * numerics::pi / 1000.0;
   }
 
-  if ( updateValueParam< double >( d, names::phase, phi_, node ) )
+  if ( updateValue< double >( d, names::phase, phi_ ) )
   {
     phi_ *= numerics::pi / 180.0;
   }
 
-  if ( updateValueParam< double >( d, names::amplitude, amplitude_, node ) )
+  if ( updateValue< double >( d, names::amplitude, amplitude_ ) )
   {
     amplitude_ /= 1000.0;
   }
@@ -292,8 +290,9 @@ nest::sinusoidal_poisson_generator::update( Time const& origin, const long from,
 void
 nest::sinusoidal_poisson_generator::event_hook( DSSpikeEvent& e )
 {
+  librandom::RngPtr rng = kernel().rng_manager.get_rng( get_thread() );
   V_.poisson_dev_.set_lambda( S_.rate_ * V_.h_ );
-  long n_spikes = V_.poisson_dev_.ldev( kernel().rng_manager.get_rng( get_thread() ) );
+  long n_spikes = V_.poisson_dev_.ldev( rng );
 
   if ( n_spikes > 0 ) // we must not send events with multiplicity 0
   {

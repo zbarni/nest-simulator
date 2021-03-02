@@ -39,8 +39,6 @@
 #include <cmath>
 #include <limits>
 
-#include "dict_util.h"
-
 /* ----------------------------------------------------------------
  * Default constructors defining default parameter
  * ---------------------------------------------------------------- */
@@ -110,7 +108,7 @@ nest::inhomogeneous_poisson_generator::Parameters_::assert_valid_rate_time_and_i
 }
 
 void
-nest::inhomogeneous_poisson_generator::Parameters_::set( const DictionaryDatum& d, Buffers_& b, Node* node )
+nest::inhomogeneous_poisson_generator::Parameters_::set( const DictionaryDatum& d, Buffers_& b )
 {
   const bool times = d->known( names::rate_times );
   const bool rates = updateValue< std::vector< double_t > >( d, names::rate_values, rate_values_ );
@@ -282,8 +280,9 @@ nest::inhomogeneous_poisson_generator::update( Time const& origin, const long fr
 void
 nest::inhomogeneous_poisson_generator::event_hook( DSSpikeEvent& e )
 {
+  librandom::RngPtr rng = kernel().rng_manager.get_rng( get_thread() );
   V_.poisson_dev_.set_lambda( B_.rate_ * V_.h_ );
-  long n_spikes = V_.poisson_dev_.ldev( kernel().rng_manager.get_rng( get_thread() ) );
+  long n_spikes = V_.poisson_dev_.ldev( rng );
 
   if ( n_spikes > 0 ) // we must not send events with multiplicity 0
   {

@@ -60,6 +60,7 @@ class RateCopyModelTestCase(unittest.TestCase):
         multimeter = nest.Create(
             'multimeter', params={
                 'record_from': ['rate'],
+                'precision': 10,
                 'interval': dt})
 
         # create new connection
@@ -72,12 +73,11 @@ class RateCopyModelTestCase(unittest.TestCase):
             multimeter, neurons, 'all_to_all', {'delay': 10.})
 
         nest.Connect(rate_neuron_drive, rate_neuron_1,
-                     'all_to_all',
-                     {'synapse_model': 'rate_connection_instantaneous',
-                      'weight': weight})
+                     'all_to_all', {'model': 'rate_connection_instantaneous',
+                                    'weight': weight})
 
         nest.Connect(rate_neuron_drive, rate_neuron_2,
-                     'all_to_all', {'synapse_model': 'rate_connection_new',
+                     'all_to_all', {'model': 'rate_connection_new',
                                     'weight': weight})
 
         # simulate
@@ -86,10 +86,8 @@ class RateCopyModelTestCase(unittest.TestCase):
         # make sure rates are identical
         events = nest.GetStatus(multimeter)[0]['events']
         senders = events['senders']
-        rate_1 = np.array(events['rate'][
-            np.where(senders == rate_neuron_1.get('global_id'))])
-        rate_2 = np.array(events['rate'][
-            np.where(senders == rate_neuron_2.get('global_id'))])
+        rate_1 = np.array(events['rate'][np.where(senders == rate_neuron_1)])
+        rate_2 = np.array(events['rate'][np.where(senders == rate_neuron_2)])
         assert(np.sum(np.abs(rate_2 - rate_1)) < 1e-12)
 
 

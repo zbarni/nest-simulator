@@ -38,15 +38,13 @@
 namespace nest
 {
 
-/* BeginUserDocs: neuron, integrate-and-fire
+/** @BeginDocumentation
+@ingroup Neurons
+@ingroup iaf
 
-Short description
-+++++++++++++++++
+Name: iaf_chs_2007 - Spike-response model used in Carandini et al 2007.
 
-Spike-response model used in Carandini et al. 2007
-
-Description
-+++++++++++
+Description:
 
 The membrane potential is the sum of stereotyped events: the postsynaptic
 potentials (V_syn), waveforms that include a spike and the subsequent
@@ -61,8 +59,8 @@ potential reset and exponential decay. U_reset is the magnitude of the
 reset/after-hyperpolarization and tau_reset is the time constant of
 recovery from this hyperpolarization.
 
-The linear subthreshold dynamics is integrated by the Exact
-Integration scheme [1]_. The neuron dynamics is solved on the time
+The linear subthresold dynamics is integrated by the Exact
+Integration scheme [1]. The neuron dynamics is solved on the time
 grid given by the computation step size. Incoming as well as emitted
 spikes are forced to that grid.
 
@@ -72,11 +70,11 @@ unsuitable for simulation in NEST. The workaround was to prepare the
 noise signal externally prior to simulation. The noise signal,
 if present, has to be at least as long as the simulation.
 
-Parameters
-++++++++++
+Parameters:
 
 The following parameters can be set in the status dictionary.
 
+\verbatim embed:rst
 ========== ============== ==================================================
  tau_epsp  ms             Membrane time constant
  tau_reset ms             Refractory time constant
@@ -85,10 +83,11 @@ The following parameters can be set in the status dictionary.
  U_noise   real           Noise scale, normalized
  noise     list of real   Noise signal
 ========== ============== ==================================================
+\endverbatim
 
-References
-++++++++++
+References:
 
+\verbatim embed:rst
 .. [1] Carandini M, Horton JC, Sincich LC (2007). Thalamic filtering of retinal
        spike trains by postsynaptic summation. Journal of Vision 7(14):20,1-11.
        DOI: https://doi.org/10.1167/7.14.20
@@ -96,19 +95,16 @@ References
        systems with applications to neuronal modeling. Biologial Cybernetics
        81:381-402.
        DOI: https://doi.org/10.1007/s004220050570
+\endverbatim
 
-Sends
-+++++
+Sends: SpikeEvent
 
-SpikeEvent
+Receives: SpikeEvent, DataLoggingRequest
 
-Receives
-++++++++
+FirstVersion: May 2012
 
-SpikeEvent, DataLoggingRequest
-
-EndUserDocs */
-
+Author: Thomas Heiberg, Birgit Kriener
+*/
 class iaf_chs_2007 : public Archiving_Node
 {
 
@@ -165,7 +161,7 @@ private:
     State_(); //!< Default initialization
 
     void get( DictionaryDatum& ) const;
-    void set( DictionaryDatum const&, Node* );
+    void set( DictionaryDatum const& );
   };
 
   // ----------------------------------------------------------------
@@ -175,6 +171,7 @@ private:
    */
   struct Parameters_
   {
+
     /** Membrane time constant in ms. */
     double tau_epsp_;
 
@@ -211,7 +208,7 @@ private:
      * @note State is passed so that the position can be reset if the
      *       noise_ vector has been filled with new data.
      */
-    void set( const DictionaryDatum&, State_& s, Node* node );
+    void set( const DictionaryDatum&, State_& s );
   };
 
 
@@ -328,9 +325,9 @@ inline void
 iaf_chs_2007::set_status( const DictionaryDatum& d )
 {
   Parameters_ ptmp = P_; // temporary copy in case of errors
-  ptmp.set( d, S_, this );
-  State_ stmp = S_;    // temporary copy in case of errors
-  stmp.set( d, this ); // throws if BadProperty
+  ptmp.set( d, S_ );
+  State_ stmp = S_; // temporary copy in case of errors
+  stmp.set( d );    // throws if BadProperty
 
   // We now know that (ptmp, stmp) are consistent. We do not
   // write them back to (P_, S_) before we are also sure that

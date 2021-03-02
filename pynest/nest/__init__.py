@@ -23,26 +23,11 @@
 Initializer of PyNEST.
 """
 
-import sys
-if sys.version_info[0] == 2:
-    raise Exception("Python 2 is not supported anymore, please use Python 3.")
+from . import ll_api      # noqa
 
-from . import ll_api                  # noqa
-from .ll_api import set_communicator  # noqa
-
-from . import pynestkernel as kernel  # noqa
-from .hl_api import *                 # noqa
-
-from . import random                  # noqa
-from . import math                    # noqa
-from . import spatial_distributions   # noqa
-from . import logic                   # noqa
-from . import spatial                 # noqa needs to be imported last because of documentation generation
-
-try:
-    from . import server              # noqa
-except ImportError:
-    pass
+# Import kernel in __init__ after initializing low-level APIs.
+from . import pynestkernel as kernel      # noqa
+from .hl_api import *      # noqa
 
 
 def test():

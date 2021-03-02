@@ -29,32 +29,30 @@
 
 // Includes from nestkernel:
 #include "connection_id.h"
-#include "node_collection.h"
+#include "gid_collection.h"
 #include "nestmodule.h"
 
 // Includes from sli:
 #include "aggregatedatum.h"
-#include "sharedptrdatum.h"
 
 typedef AggregateDatum< nest::ConnectionID, &nest::NestModule::ConnectionType > ConnectionDatum;
-typedef sharedPtrDatum< nest::NodeCollection, &nest::NestModule::NodeCollectionType > NodeCollectionDatum;
-typedef sharedPtrDatum< nest::nc_const_iterator, &nest::NestModule::NodeCollectionIteratorType >
-  NodeCollectionIteratorDatum;
-typedef sharedPtrDatum< nest::Parameter, &nest::NestModule::ParameterType > ParameterDatum;
+typedef AggregateDatum< nest::GIDCollection, &nest::NestModule::GIDCollectionType > GIDCollectionDatum;
 
 #ifndef HAVE_STATIC_TEMPLATE_DECLARATION_FAILS
 template <>
 sli::pool ConnectionDatum::memory;
+template <>
+sli::pool GIDCollectionDatum::memory;
 #endif
 
 template <>
 void ConnectionDatum::print( std::ostream& ) const;
+template <>
+void GIDCollectionDatum::print( std::ostream& ) const;
 
 template <>
 void ConnectionDatum::pprint( std::ostream& ) const;
 template <>
-void NodeCollectionDatum::pprint( std::ostream& ) const;
-template <>
-void NodeCollectionIteratorDatum::pprint( std::ostream& ) const;
+void GIDCollectionDatum::pprint( std::ostream& ) const;
 
 #endif /* #ifndef NEST_DATUMS_H */

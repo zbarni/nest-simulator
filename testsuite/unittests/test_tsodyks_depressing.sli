@@ -21,7 +21,7 @@
  */
 
  /** @BeginDocumentation
-Name: test_tsodyks_depressing - SLI script for overall test of Tsodyks synapse models
+Name: test_tsodyks_depressing - sli script for overall test of tsodyks synapse models
 
 Synopsis:(test_tsodyks_depressing) run -> compare cout with comments in file
 
@@ -139,16 +139,17 @@ def
   
   % set resolution and limits on delays
   % limits must be set BEFORE connecting any elements
+  0
   <<
     /resolution h
     /local_num_threads local_num_threads
-  >> SetKernelStatus
+  >> SetStatus
 
   /sg /spike_generator << /spike_times input_train >> Create def
   /pn /parrot_neuron Create def
   
   /neuron 
-    /iaf_psc_exp_htum
+    /iaf_tum_2000
     << /tau_m Tau
        /t_ref_tot TauR
        /t_ref_abs TauR
@@ -163,7 +164,10 @@ def
 
   /vm 
     /voltmeter 
-    << /interval 25.0 >>
+    << /withtime true
+       /to_memory true
+       /interval 25.0
+    >>
   Create def
 
   synapse_model 
@@ -178,7 +182,7 @@ def
   >> SetDefaults
 
   sg pn Connect   % pn required, devices cannot project to plastic synapses
-  pn neuron << >> synapse_model Connect
+  pn neuron synapse_model Connect
   vm neuron Connect
 
   T_sim Simulate
@@ -198,3 +202,4 @@ def
 } forall % tsodyks models
 
 endusing % unittest
+

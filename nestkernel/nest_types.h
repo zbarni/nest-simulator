@@ -28,7 +28,6 @@
 #include <climits>
 #include <cstddef>
 #include <limits>
-#include <stdint.h>
 
 // Generated includes:
 #include "config.h"
@@ -92,7 +91,7 @@ constexpr uint8_t NUM_BITS_PROCESSED_FLAG = 1U;
 constexpr uint8_t NUM_BITS_MARKER_SPIKE_DATA = 2U;
 constexpr uint8_t NUM_BITS_LAG = 14U;
 constexpr uint8_t NUM_BITS_DELAY = 21U;
-constexpr uint8_t NUM_BITS_NODE_ID = 62U;
+constexpr uint8_t NUM_BITS_GID = 62U;
 
 /*
  * Maximally allowed values for bitfields
@@ -101,8 +100,8 @@ constexpr uint64_t MAX_LCID = generate_max_value( NUM_BITS_LCID );
 constexpr int64_t MAX_RANK = generate_max_value( NUM_BITS_RANK );
 constexpr int64_t MAX_TID = generate_max_value( NUM_BITS_TID );
 constexpr uint64_t MAX_SYN_ID = generate_max_value( NUM_BITS_SYN_ID );
-constexpr uint64_t DISABLED_NODE_ID = generate_max_value( NUM_BITS_NODE_ID );
-constexpr uint64_t MAX_NODE_ID = DISABLED_NODE_ID - 1;
+constexpr uint64_t DISABLED_GID = generate_max_value( NUM_BITS_GID );
+constexpr uint64_t MAX_GID = DISABLED_GID - 1;
 
 /**
  * Type for Time tics.
@@ -129,7 +128,7 @@ typedef size_t index;
 #ifndef SIZE_MAX
 #define SIZE_MAX ( static_cast< std::size_t >( -1 ) )
 #endif
-__attribute__( ( __unused__ ) ) const index invalid_index = SIZE_MAX;
+const index invalid_index = SIZE_MAX;
 
 /**
  *  For enumerations of synapse types.
@@ -145,7 +144,7 @@ const synindex invalid_synindex = MAX_SYN_ID;
 //! target index into thread local node vector
 typedef unsigned short targetindex;
 const targetindex invalid_targetindex = USHRT_MAX;
-__attribute__( ( __unused__ ) ) const index max_targetindex = invalid_targetindex - 1;
+const index max_targetindex = invalid_targetindex - 1;
 
 /**
  * Thread index type.
@@ -212,7 +211,7 @@ const long delay_max = LONG_MAX;
  * determine by a bitwise AND operation if sender and receiver are compatible.
  * The check takes place in connection::check_connection().
  *
- * A device, such as the spike-generator or spike_recorder,
+ * A device, such as the spike-generator or spike_detector,
  * that can in a meaningful way be connected to either neuron model
  * can use the wildcard ALL, that will match any connection partner.
  */

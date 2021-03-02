@@ -30,17 +30,26 @@
 
 #include "histentry.h"
 
-nest::histentry::histentry( double t, double Kminus, double Kminus_triplet, size_t access_counter )
+nest::histentry::histentry( double t, double Kminus, double triplet_Kminus, size_t access_counter )
   : t_( t )
   , Kminus_( Kminus )
-  , Kminus_triplet_( Kminus_triplet )
+  , triplet_Kminus_( triplet_Kminus )
   , access_counter_( access_counter )
 {
 }
 
-nest::histentry_extended::histentry_extended( double t, double dw, size_t access_counter )
+nest::histentry_cl::histentry_cl( double t, double dw, size_t access_counter )
   : t_( t )
   , dw_( dw )
+  , access_counter_( access_counter )
+{
+}
+
+nest::histentry_sh::histentry_sh( double t, double ltp, double ltd, double w, size_t access_counter )
+  : t_( t )
+  , ltp_trace_( ltp )
+  , ltd_trace_( ltd )
+  , w_( w )
   , access_counter_( access_counter )
 {
 }

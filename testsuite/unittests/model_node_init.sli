@@ -46,7 +46,7 @@
 /run_model {
    
    ResetKernel
-   << /overwrite_files true >> SetKernelStatus
+   0 << /overwrite_files true >> SetStatus
 
    % expect boolean flag, if true init model, else init node
    % leave voltmeter potential trace and node status dict on stack
@@ -66,11 +66,12 @@
   /voltmeter Create /vm Set
   m  n Connect
   vm n Connect
+  vm << /to_file false /to_memory true >> SetStatus
 
   1000 Simulate
 
   vm [ /events /V_m ] get cva
-  m GetStatus 0 get
+  m GetStatus
   2 arraystore
 } def
 

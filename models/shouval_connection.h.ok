@@ -1,0 +1,276 @@
+
+/*
+*  shouval_connection.h
+*
+*  This file is part of NEST.
+*
+*  Copyright (C) 2004 The NEST Initiative
+*
+*  NEST is free software: you can redistribute it and/or modify
+*  it under the terms of the GNU General Public License as published by
+*  the Free Software Foundation, either version 2 of the License, or
+*  (at your option) any later version.
+*
+*  NEST is distributed in the hope that it will be useful,
+*  but WITHOUT ANY WARRANTY; without even the implied warranty of
+*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*  GNU General Public License for more details.
+*
+*  You should have received a copy of the GNU General Public License
+*  along with NEST.  If not, see <http://www.gnu.org/licenses/>.
+*
+*  2020-10-29 13:15:31.388998
+*/
+
+#ifndef SHOUVAL_CONNECTION_H
+#define SHOUVAL_CONNECTION_H
+
+// C++ includes:
+#include <cmath>
+#include <gsl/gsl_errno.h>
+#include <gsl/gsl_matrix.h>
+#include <gsl/gsl_odeiv.h>
+//#include <cstdio>
+#include <sstream>
+
+
+// Includes from nestkernel:
+#include "common_synapse_properties.h"
+#include "connection.h"
+#include "connector_model.h"
+#include "event.h"
+//#include "logging.h"
+
+// Includes from sli:
+#include "dictdatum.h"
+#include "dictutils.h"
+
+
+/** @BeginDocumentation
+
+Authors
++++++++
+
+Zajzon
+
+
+**/
+
+#define DYAD_POST_TYPE
+
+namespace nest {
+
+/** @BeginDocumentation
+
+**/
+
+/**
+ * Class representing a static connection.
+ */
+template< typename targetidentifierT >
+class ShouvalConnection : public Connection< targetidentifierT >
+{
+
+public:
+  typedef CommonSynapseProperties CommonPropertiesType;
+  typedef Connection<targetidentifierT> ConnectionBase;
+
+  /**
+  * Default constructor.
+  *
+  * Sets default values for all parameters (skipping common properties).
+  *
+  * Needed by GenericConnectorModel.
+  */
+  ShouvalConnection();
+
+
+  /**
+  * Copy constructor from a property object.
+  *
+  * Sets default values for all parameters (skipping common properties).
+  *
+  * Needs to be defined properly in order for GenericConnector to work.
+  */
+  ShouvalConnection(const ShouvalConnection &);
+
+  // Explicitly declare all methods inherited from the dependent base
+  // ConnectionBase. This avoids explicit name prefixes in all places these
+  // functions are used. Since ConnectionBase depends on the template parameter,
+  // they are not automatically found in the base class.
+  using ConnectionBase::get_delay_steps;
+  using ConnectionBase::get_delay;
+  using ConnectionBase::get_rport;
+  using ConnectionBase::get_target;
+
+  /**
+   * Get all properties of this connection and put them into a dictionary.
+   */
+  void get_status( DictionaryDatum &d ) const;
+
+  /**
+   * Set properties of this connection from the values given in dictionary.
+   */
+  void set_status( const DictionaryDatum &d, ConnectorModel &cm );
+
+  /**
+ * Send an event to the receiver of this connection.
+ * \param e The event to send
+ * \param cp common properties of all synapses (empty).
+ */
+  void send( Event &e, thread tid, const CommonSynapseProperties &cp );
+
+
+  class ConnTestDummyNode : public ConnTestDummyNodeBase
+  {
+  public:
+    // Ensure proper overriding of overloaded virtual functions.
+    // Return values from functions are ignored.
+    using ConnTestDummyNodeBase::handles_test_event;
+
+    port
+    handles_test_event( SpikeEvent &, rport ) {
+      return invalid_port_;
+    }
+  };
+
+  void
+  check_connection( Node &s, Node &t, rport receptor_type, const CommonPropertiesType & )
+  {
+    ConnTestDummyNode dummy_target;
+    ConnectionBase::check_connection_(dummy_target, s, t, receptor_type);
+    t.register_stdp_connection(t_lastspike_ - get_delay(), get_delay());
+  }
+
+  inline void set_weight(double w) {
+    weight_ = w;
+  }
+
+private:
+  double weight_;
+  double t_lastspike_;
+
+
+  /**
+  * Dynamic state of the synapse.
+  *
+  *
+  * These are the state variables that are advanced in time by calls to
+  * @c update(). In many models, some or all of them can be set by the user
+  * through @c SetStatus. The state variables are initialized from the model
+  * prototype when the node is created. State variables are reset by @c ResetNetwork.
+  *
+  * @note State_ need neither copy constructor nor @c operator=(), since
+  *       all its members are copied properly by the default copy constructor
+  *       and assignment operator. Important:
+  *       - If State_ contained @c Time members, you need to define the
+  *         assignment operator to recalibrate all members of type @c Time . You
+  *         may also want to define the assignment operator.
+  *       - If State_ contained members that cannot copy themselves, such
+  *         as C-style arrays, you need to define the copy constructor and
+  *         assignment operator to copy those members.
+   */
+
+  /**
+  * Free parameters of the synapse.
+  *
+  *
+  *
+  * These are the parameters that can be set by the user through @c SetStatus.
+  * They are initialized from the model prototype when the node is created.
+  * Parameters do not change during calls to @c update() and are not reset by
+  * @c ResetNetwork.
+  *
+  * @note Parameters_ need neither copy constructor nor @c operator=(), since
+  *       all its members are copied properly by the default copy constructor
+  *       and assignment operator. Important:
+  *       - If Parameters_ contained @c Time members, you need to define the
+  *         assignment operator to recalibrate all members of type @c Time . You
+  *         may also want to define the assignment operator.
+  *       - If Parameters_ contained members that cannot copy themselves, such
+  *         as C-style arrays, you need to define the copy constructor and
+  *         assignment operator to copy those members.
+   */
+//  struct Parameters_
+//  {
+//
+//    //!  filtering time constant for firing rate estimation
+//    double tau_w;
+//
+//    /** Initialize parameters to their default values. */
+//    Parameters_() {};
+//  };
+
+  /**
+  * Internal variables of the synapse.
+  *
+  *
+  *
+  * These variables must be initialized by @c calibrate, which is called before
+  * the first call to @c update() upon each call to @c Simulate.
+  * @node Variables_ needs neither constructor, copy constructor or assignment operator,
+  *       since it is initialized by @c calibrate(). If Variables_ has members that
+  *       cannot destroy themselves, Variables_ will need a destructor.
+   */
+//  Parameters_ P_; //!< Free parameters.
+  double tau_w;
+};
+
+////////////////////////////////////////////////
+
+template<typename targetidentifierT>
+inline void
+ShouvalConnection<targetidentifierT>::send(Event &e, thread tid, const CommonSynapseProperties &cp) {
+
+}
+
+/**
+* constructor
+**/
+template < typename targetidentifierT >
+ShouvalConnection< targetidentifierT >::ShouvalConnection()
+  :ConnectionBase()
+{
+//        P_.log_interval_sampling = 0.;
+//  P_.tau_w = 40.; // as ms
+tau_w = 40.; // as ms
+  t_lastspike_ = 0.;
+}
+
+template < typename targetidentifierT >
+ShouvalConnection< targetidentifierT >::ShouvalConnection( const ShouvalConnection< targetidentifierT >& rhs ):
+  ConnectionBase(rhs)
+//      SP_(rhs.SP_), B_(rhs.B_)
+{
+//  P_.tau_w = rhs.P_.tau_w;
+  tau_w = rhs.tau_w;
+  t_lastspike_  = rhs.t_lastspike_;
+}
+
+template<typename targetidentifierT>
+void
+ShouvalConnection<targetidentifierT>::get_status(DictionaryDatum &__d) const
+{
+  ConnectionBase::get_status(__d);
+  def<double>( __d, names::weight, weight_ );
+  def<long>(__d, names::size_of, sizeof(*this));
+
+  // parameters
+//  def<double>(__d, "tau_w", get_tau_filter());
+  def<double>(__d, names::tau_w, tau_w );
+}
+
+template<typename targetidentifierT>
+void
+ShouvalConnection<targetidentifierT>::set_status(const DictionaryDatum &__d, ConnectorModel &cm)
+{
+  ConnectionBase::set_status(__d, cm);
+
+  // parameters
+//  double tmp_tau_filter = get_tau_filter();
+  updateValue<double>(__d, names::tau_w, tau_w );
+}
+
+} // namespace
+
+#endif /* #ifndef SHOUVAL_CONNECTION_H */

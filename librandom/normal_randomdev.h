@@ -26,6 +26,9 @@
 // C++ includes:
 #include <cmath>
 
+// Includes from libnestutil:
+#include "lockptr.h"
+
 // Includes from librandom:
 #include "randomdev.h"
 #include "randomgen.h"
@@ -64,8 +67,8 @@ class NormalRandomDev : public RandomDev
 {
 
 public:
-  // accept only shared_ptrs for initialization,
-  // otherwise creation of a shared_ptr would
+  // accept only lockPTRs for initialization,
+  // otherwise creation of a lock ptr would
   // occur as side effect---might be unhealthy
   NormalRandomDev( RngPtr );
   NormalRandomDev(); // threaded

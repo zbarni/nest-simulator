@@ -45,10 +45,10 @@
 
     ResetKernel
 
-    <<
-    	/local_num_threads 1 
-    	/resolution h
-    >> SetKernelStatus
+    0 <<
+	/local_num_threads 1 
+	/resolution h
+    >> SetStatus
 
     /model Set
 
@@ -87,45 +87,42 @@
     
     ResetKernel
 
-    << 
-    	/local_num_threads 1 
-    	/resolution h
-    >> SetKernelStatus
+    0 << 
+	/local_num_threads 1 
+	/resolution h
+    >> SetStatus
 
 
     /nrn1 model Create def
-    /sp /spike_recorder Create def
+    /sp /spike_detector Create def
 
     % set threshold so that neuron makes transition to 1
     nrn1 << /theta -10. /tau_m 1. >> SetStatus
 
     nrn1 sp Connect
-
-    Prepare
     
-    100. Run
+    100. Simulate
     
     % should have two events
-    sp /events get /senders get length 2 eq
+    sp GetStatus /events get /senders get length 2 eq
     assert_or_die
 
     % both events should be at same time point
-    sp /events get /times get dup 0 get exch 0 get eq
+    sp GetStatus /events get /times get dup 0 get exch 0 get eq
     assert_or_die
+
     
-    sp /events get /senders get length 2 eq
+    sp GetStatus /events get /senders get length 2 eq
     assert_or_die
 
     % set threshold so that neuron makes transition to 0
     nrn1 << /theta 10. /tau_m 1. >> SetStatus
 
-    100. Run
+    100. Simulate
 
     % should have one more event now
-    sp /events get /senders get length 3 eq
+    sp GetStatus /events get /senders get length 3 eq
     assert_or_die
-
-    Cleanup
 }
 forall
 
@@ -134,7 +131,7 @@ forall
 /mcculloch_pitts_neuron Create /binary Set
 /iaf_psc_alpha Create /spiking Set
 /spike_generator Create /sg Set
-/spike_recorder Create /sr Set
+/spike_detector Create /sd Set
 
 % check if connecting a binary to a spiking neuron throws exception
 {
@@ -150,8 +147,8 @@ forall
 {
     sg spiking Connect
     sg binary Connect
-    spiking sr Connect
-    binary sr Connect
+    spiking sd Connect
+    binary sd Connect
 } pass_or_die
 
 % Check if simulating with two connected binary neurons when keep_source_table
@@ -159,7 +156,7 @@ forall
 {
   ResetKernel
   
-  << /keep_source_table false >> SetKernelStatus
+  0 << /keep_source_table false >> SetStatus
   
   /ginzburg /ginzburg_neuron Create def
   /mcculluch /mcculluch_pitts_neuron Create def

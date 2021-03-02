@@ -80,7 +80,7 @@ skipped_models { modeldict exch undef } forall
 
     % Avoid exceptions in case a model has C_m or
     % tau_* that cannot be changed.
-    << /dict_miss_is_error false >> SetKernelStatus    
+    0 << /dict_miss_is_error false >> SetStatus    
 
     /model Set
     /all_fine true def % pass by default
@@ -149,7 +149,7 @@ skipped_models { modeldict exch undef } forall
 
     % Avoid exceptions in case a model has C_m or
     % tau_* that cannot be changed.
-    << /dict_miss_is_error false >> SetKernelStatus    
+    0 << /dict_miss_is_error false >> SetStatus    
 
     /model Set
 

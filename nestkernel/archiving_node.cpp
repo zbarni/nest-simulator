@@ -43,12 +43,11 @@ namespace nest
 nest::Archiving_Node::Archiving_Node()
   : n_incoming_( 0 )
   , Kminus_( 0.0 )
-  , Kminus_triplet_( 0.0 )
+  , triplet_Kminus_( 0.0 )
   , tau_minus_( 20.0 )
   , tau_minus_inv_( 1. / tau_minus_ )
   , tau_minus_triplet_( 110.0 )
   , tau_minus_triplet_inv_( 1. / tau_minus_triplet_ )
-  , max_delay_( 0 )
   , last_spike_( -1.0 )
   , Ca_t_( 0.0 )
   , Ca_minus_( 0.0 )
@@ -62,7 +61,7 @@ nest::Archiving_Node::Archiving_Node( const Archiving_Node& n )
   : Node( n )
   , n_incoming_( n.n_incoming_ )
   , Kminus_( n.Kminus_ )
-  , Kminus_triplet_( n.Kminus_triplet_ )
+  , triplet_Kminus_( n.triplet_Kminus_ )
   , tau_minus_( n.tau_minus_ )
   , tau_minus_inv_( n.tau_minus_inv_ )
   , tau_minus_triplet_( n.tau_minus_triplet_ )
@@ -131,12 +130,12 @@ void
 nest::Archiving_Node::get_K_values( double t,
   double& K_value,
   double& nearest_neighbor_K_value,
-  double& K_triplet_value )
+  double& triplet_K_value )
 {
   // case when the neuron has not yet spiked
   if ( history_.empty() )
   {
-    K_triplet_value = Kminus_triplet_;
+    triplet_K_value = triplet_Kminus_;
     nearest_neighbor_K_value = Kminus_;
     K_value = Kminus_;
     return;
@@ -149,8 +148,8 @@ nest::Archiving_Node::get_K_values( double t,
   {
     if ( t - history_[ i ].t_ > kernel().connection_manager.get_stdp_eps() )
     {
-      K_triplet_value =
-        ( history_[ i ].Kminus_triplet_ * std::exp( ( history_[ i ].t_ - t ) * tau_minus_triplet_inv_ ) );
+      triplet_K_value =
+        ( history_[ i ].triplet_Kminus_ * std::exp( ( history_[ i ].t_ - t ) * tau_minus_triplet_inv_ ) );
       K_value = ( history_[ i ].Kminus_ * std::exp( ( history_[ i ].t_ - t ) * tau_minus_inv_ ) );
       nearest_neighbor_K_value = std::exp( ( history_[ i ].t_ - t ) * tau_minus_inv_ );
       return;
@@ -160,7 +159,7 @@ nest::Archiving_Node::get_K_values( double t,
 
   // this case occurs when the trace was requested at a time precisely at or
   // before the first spike in the history
-  K_triplet_value = 0.0;
+  triplet_K_value = 0.0;
   nearest_neighbor_K_value = 0.0;
   K_value = 0.0;
 }
@@ -223,9 +222,9 @@ nest::Archiving_Node::set_spiketime( Time const& t_sp, double offset )
     }
     // update spiking history
     Kminus_ = Kminus_ * std::exp( ( last_spike_ - t_sp_ms ) * tau_minus_inv_ ) + 1.0;
-    Kminus_triplet_ = Kminus_triplet_ * std::exp( ( last_spike_ - t_sp_ms ) * tau_minus_triplet_inv_ ) + 1.0;
+    triplet_Kminus_ = triplet_Kminus_ * std::exp( ( last_spike_ - t_sp_ms ) * tau_minus_triplet_inv_ ) + 1.0;
     last_spike_ = t_sp_ms;
-    history_.push_back( histentry( last_spike_, Kminus_, Kminus_triplet_, 0 ) );
+    history_.push_back( histentry( last_spike_, Kminus_, triplet_Kminus_, 0 ) );
   }
   else
   {
@@ -345,7 +344,7 @@ nest::Archiving_Node::clear_history()
 {
   last_spike_ = -1.0;
   Kminus_ = 0.0;
-  Kminus_triplet_ = 0.0;
+  triplet_Kminus_ = 0.0;
   history_.clear();
   Ca_minus_ = 0.0;
   Ca_t_ = 0.0;

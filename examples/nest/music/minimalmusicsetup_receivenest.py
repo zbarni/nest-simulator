@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
 # minimalmusicsetup_receivenest.py
@@ -26,17 +26,20 @@ if not nest.ll_api.sli_func("statusdict/have_music ::"):
     import sys
 
     print("NEST was not compiled with support for MUSIC, not running.")
-    sys.exit(1)
+    sys.exit()
 
 nest.set_verbosity("M_ERROR")
 
 meip = nest.Create('music_event_in_proxy')
+nest.SetStatus(meip, {'port_name': 'spikes_in', 'music_channel': 0})
+
 n = nest.Create('iaf_psc_alpha')
-meip.set({'port_name': 'spikes_in', 'music_channel': 0})
+
 nest.Connect(meip, n, 'one_to_one', {'weight': 750.0})
 
 vm = nest.Create('voltmeter')
-vm.record_to = "screen"
+nest.SetStatus(vm, {'to_memory': False, 'to_screen': True})
+
 nest.Connect(vm, n)
 
 nest.Simulate(10)

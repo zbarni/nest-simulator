@@ -80,9 +80,12 @@ nest::LoggingManager::deliver_logging_event_( const LoggingEvent& event ) const
   {
     default_logging_callback_( event );
   }
-  for ( const auto& client_callback : client_callbacks_ )
+  std::vector< deliver_logging_event_ptr >::iterator it;
+  for ( std::vector< deliver_logging_event_ptr >::const_iterator it = client_callbacks_.begin();
+        it != client_callbacks_.end();
+        ++it )
   {
-    client_callback( event );
+    ( *it )( event );
   }
 }
 

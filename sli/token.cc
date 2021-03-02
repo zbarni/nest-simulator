@@ -180,17 +180,17 @@ Token::pprint( std::ostream& out ) const
   }
 }
 
-std::ostream& operator<<( std::ostream& out, const Token& c )
+std::ostream& operator<<( std::ostream& o, const Token& c )
 {
   if ( not c )
   {
-    out << "<Null token>";
+    o << "<Null token>";
   }
   else
   {
-    c->print( out );
+    c->print( o );
   }
-  return out;
+  return o;
 }
 
 bool

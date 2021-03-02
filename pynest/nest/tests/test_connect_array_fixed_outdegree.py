@@ -36,7 +36,7 @@ class ConnectArrayFixedOutdegreeTestCase(unittest.TestCase):
     def test_Connect_Array_Fixed_Outdegree(self):
         """Tests of connections with fixed outdegree and parameter arrays"""
 
-        N = 20  # number of neurons in each population
+        N = 20  # number of neurons in each subnet
         K = 5   # number of connections per neuron
 
         ############################################
@@ -44,33 +44,31 @@ class ConnectArrayFixedOutdegreeTestCase(unittest.TestCase):
         ############################################
         nest.ResetKernel()
 
-        net1 = nest.Create('iaf_psc_alpha', N)  # creates source population
-        net2 = nest.Create('iaf_psc_alpha', N)  # creates target population
+        net1 = nest.Create('iaf_psc_alpha', N)  # creates source subnet
+        net2 = nest.Create('iaf_psc_alpha', N)  # creates target subnet
 
         Warr = [[y*K+x for x in range(K)] for y in range(N)]  # weight array
         Darr = [[y*K+x + 1 for x in range(K)] for y in range(N)]  # delay array
 
         # synapses and connection dictionaries
-        syn_dict = {'synapse_model': 'static_synapse',
-                    'weight': Warr, 'delay': Darr}
+        syn_dict = {'model': 'static_synapse', 'weight': Warr, 'delay': Darr}
         conn_dict = {'rule': 'fixed_outdegree', 'outdegree': K}
 
-        # connects source to target
+        # connects source to target subnet
         nest.Connect(net1, net2, conn_spec=conn_dict, syn_spec=syn_dict)
 
-        for i in range(N):  # loop on all source neurons
+        for i in range(N):  # loop on all neurons of source subnet
 
             # gets all connections from the source neuron
             conns = nest.GetConnections(source=net1[i:i+1])
-            weight = conns.get('weight')
-            delay = conns.get('delay')
 
             Warr1 = []  # creates empty weight array
 
             # loop on synapses that connect from source neuron
             for j in range(len(conns)):
-                w = weight[j]  # gets synaptic weight
-                d = delay[j]   # gets synaptic delay
+                c = conns[j:j+1]
+                w = nest.GetStatus(c, 'weight')[0]  # gets synaptic weight
+                d = nest.GetStatus(c, 'delay')[0]   # gets synaptic delay
 
                 self.assertTrue(d - w == 1)  # checks that delay = weight + 1
 
@@ -95,7 +93,6 @@ def suite():
 def run():
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(suite())
-
 
 if __name__ == "__main__":
     run()

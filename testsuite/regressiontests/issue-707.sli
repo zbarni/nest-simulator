@@ -52,14 +52,14 @@ skip_if_without_gsl
 
   /gap_junction << /weight_recorder wr >> SetDefaults
 
-  neuron_in neuron_out
+  [neuron_in] [neuron_out]
   << /rule /one_to_one /make_symmetric true >>
-  << /synapse_model /gap_junction /weight 2.0 >>
+  << /model /gap_junction /weight 2.0 >>
   Connect
 
   10 Simulate
 
-  wr /events get /weights get 1 get
+  wr GetStatus /events get /weights get 1 get
 
   2.0 eq
 }

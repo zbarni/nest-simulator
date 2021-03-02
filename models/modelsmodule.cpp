@@ -31,6 +31,7 @@
 // Neuron models
 #include "aeif_cond_alpha.h"
 #include "aeif_cond_alpha_multisynapse.h"
+#include "aeif_cond_alpha_RK5.h"
 #include "aeif_cond_beta_multisynapse.h"
 #include "aeif_cond_exp.h"
 #include "aeif_psc_alpha.h"
@@ -62,23 +63,16 @@
 #include "iaf_cond_exp.h"
 #include "iaf_cond_exp_sfa_rr.h"
 #include "iaf_psc_alpha.h"
-#include "iaf_psc_alpha_canon.h"
 #include "iaf_psc_alpha_multisynapse.h"
-#include "iaf_psc_alpha_ps.h"
 #include "iaf_psc_delta.h"
-#include "iaf_psc_delta_ps.h"
 #include "iaf_psc_exp.h"
-#include "iaf_psc_exp_htum.h"
 #include "iaf_psc_exp_multisynapse.h"
-#include "iaf_psc_exp_ps.h"
-#include "iaf_psc_exp_ps_lossless.h"
+#include "iaf_tum_2000.h"
 #include "izhikevich.h"
 #include "lin_rate.h"
 #include "mat2_psc_exp.h"
 #include "mcculloch_pitts_neuron.h"
 #include "parrot_neuron.h"
-#include "parrot_neuron_ps.h"
-#include "pp_cond_exp_mc_urbanczik.h"
 #include "pp_pop_psc_delta.h"
 #include "pp_psc_delta.h"
 #include "siegert_neuron.h"
@@ -94,7 +88,6 @@
 #include "mip_generator.h"
 #include "noise_generator.h"
 #include "poisson_generator.h"
-#include "poisson_generator_ps.h"
 #include "inhomogeneous_poisson_generator.h"
 #include "ppd_sup_generator.h"
 #include "pulsepacket_generator.h"
@@ -109,8 +102,9 @@
 #include "correlomatrix_detector.h"
 #include "correlospinmatrix_detector.h"
 #include "multimeter.h"
-#include "spike_recorder.h"
+#include "spike_detector.h"
 #include "spin_detector.h"
+#include "voltmeter.h"
 #include "volume_transmitter.h"
 #include "weight_recorder.h"
 
@@ -123,11 +117,12 @@
 #include "diffusion_connection.h"
 #include "gap_junction.h"
 #include "ht_connection.h"
-#include "jonke_connection.h"
 #include "quantal_stp_connection.h"
 #include "quantal_stp_connection_impl.h"
 #include "rate_connection_delayed.h"
 #include "rate_connection_instantaneous.h"
+//#include "shouval_connection.h.bak"
+//#include "shouval_connection2.h.bak"
 #include "spike_dilutor.h"
 #include "static_connection.h"
 #include "static_connection_hom_w.h"
@@ -136,15 +131,14 @@
 #include "stdp_connection_facetshw_hom_impl.h"
 #include "stdp_connection_hom.h"
 #include "stdp_dopa_connection.h"
+#include "stdp_nn_pre-centered_connection.h"
 #include "stdp_nn_restr_connection.h"
 #include "stdp_nn_symm_connection.h"
-#include "stdp_nn_pre-centered_connection.h"
 #include "stdp_pl_connection_hom.h"
 #include "stdp_triplet_connection.h"
 #include "tsodyks2_connection.h"
 #include "tsodyks_connection.h"
 #include "tsodyks_connection_hom.h"
-#include "urbanczik_connection.h"
 #include "vogels_sprekeler_connection.h"
 
 // Includes from nestkernel:
@@ -162,8 +156,6 @@
 #include "music_event_in_proxy.h"
 #include "music_event_out_proxy.h"
 #include "music_message_in_proxy.h"
-#include "music_rate_in_proxy.h"
-#include "music_rate_out_proxy.h"
 #endif
 
 namespace nest
@@ -183,6 +175,13 @@ const std::string
 ModelsModule::name( void ) const
 {
   return std::string( "NEST Standard Models Module" ); // Return name of the module
+}
+
+const std::string
+ModelsModule::commandstring( void ) const
+{
+  // TODO: Move models-init.sli to sli_neuron....
+  return std::string( "(models-init) run" );
 }
 
 //-------------------------------------------------------------------------------------
@@ -213,21 +212,14 @@ ModelsModule::init( SLIInterpreter* )
 
   kernel().model_manager.register_node_model< iaf_chs_2007 >( "iaf_chs_2007" );
   kernel().model_manager.register_node_model< iaf_psc_alpha >( "iaf_psc_alpha" );
-  kernel().model_manager.register_node_model< iaf_psc_alpha_canon >(
-    "iaf_psc_alpha_canon", /*private_model*/ false, /*deprecation_info*/ "a future version of NEST" );
   kernel().model_manager.register_node_model< iaf_psc_alpha_multisynapse >( "iaf_psc_alpha_multisynapse" );
-  kernel().model_manager.register_node_model< iaf_psc_alpha_ps >( "iaf_psc_alpha_ps" );
   kernel().model_manager.register_node_model< iaf_psc_delta >( "iaf_psc_delta" );
-  kernel().model_manager.register_node_model< iaf_psc_delta_ps >( "iaf_psc_delta_ps" );
   kernel().model_manager.register_node_model< iaf_psc_exp >( "iaf_psc_exp" );
-  kernel().model_manager.register_node_model< iaf_psc_exp_htum >( "iaf_psc_exp_htum" );
   kernel().model_manager.register_node_model< iaf_psc_exp_multisynapse >( "iaf_psc_exp_multisynapse" );
-  kernel().model_manager.register_node_model< iaf_psc_exp_ps >( "iaf_psc_exp_ps" );
-  kernel().model_manager.register_node_model< iaf_psc_exp_ps_lossless >( "iaf_psc_exp_ps_lossless" );
+  kernel().model_manager.register_node_model< iaf_tum_2000 >( "iaf_tum_2000" );
   kernel().model_manager.register_node_model< amat2_psc_exp >( "amat2_psc_exp" );
   kernel().model_manager.register_node_model< mat2_psc_exp >( "mat2_psc_exp" );
   kernel().model_manager.register_node_model< parrot_neuron >( "parrot_neuron" );
-  kernel().model_manager.register_node_model< parrot_neuron_ps >( "parrot_neuron_ps" );
   kernel().model_manager.register_node_model< pp_psc_delta >( "pp_psc_delta" );
   kernel().model_manager.register_node_model< pp_pop_psc_delta >( "pp_pop_psc_delta" );
   kernel().model_manager.register_node_model< gif_psc_exp >( "gif_psc_exp" );
@@ -239,7 +231,6 @@ ModelsModule::init( SLIInterpreter* )
   kernel().model_manager.register_node_model< spike_generator >( "spike_generator" );
   kernel().model_manager.register_node_model< inhomogeneous_poisson_generator >( "inhomogeneous_poisson_generator" );
   kernel().model_manager.register_node_model< poisson_generator >( "poisson_generator" );
-  kernel().model_manager.register_node_model< poisson_generator_ps >( "poisson_generator_ps" );
   kernel().model_manager.register_node_model< pulsepacket_generator >( "pulsepacket_generator" );
   kernel().model_manager.register_node_model< noise_generator >( "noise_generator" );
   kernel().model_manager.register_node_model< step_current_generator >( "step_current_generator" );
@@ -254,7 +245,7 @@ ModelsModule::init( SLIInterpreter* )
   kernel().model_manager.register_node_model< izhikevich >( "izhikevich" );
   kernel().model_manager.register_node_model< spike_dilutor >( "spike_dilutor" );
 
-  kernel().model_manager.register_node_model< spike_recorder >( "spike_recorder" );
+  kernel().model_manager.register_node_model< spike_detector >( "spike_detector" );
   kernel().model_manager.register_node_model< weight_recorder >( "weight_recorder" );
   kernel().model_manager.register_node_model< spin_detector >( "spin_detector" );
   kernel().model_manager.register_node_model< multimeter >( "multimeter" );
@@ -292,8 +283,12 @@ ModelsModule::init( SLIInterpreter* )
   kernel().model_manager.register_node_model< aeif_cond_beta_multisynapse >( "aeif_cond_beta_multisynapse" );
   kernel().model_manager.register_node_model< aeif_cond_alpha_multisynapse >( "aeif_cond_alpha_multisynapse" );
   kernel().model_manager.register_node_model< siegert_neuron >( "siegert_neuron" );
-  kernel().model_manager.register_node_model< pp_cond_exp_mc_urbanczik >( "pp_cond_exp_mc_urbanczik" );
 #endif
+
+  // This version of the AdEx model does not depend on GSL.
+  kernel().model_manager.register_node_model< aeif_cond_alpha_RK5 >( "aeif_cond_alpha_RK5",
+    /*private_model*/ false,
+    /*deprecation_info*/ "NEST 3.0" );
 
 #ifdef HAVE_MUSIC
   //// proxies for inter-application communication using MUSIC
@@ -302,8 +297,6 @@ ModelsModule::init( SLIInterpreter* )
   kernel().model_manager.register_node_model< music_cont_in_proxy >( "music_cont_in_proxy" );
   kernel().model_manager.register_node_model< music_cont_out_proxy >( "music_cont_out_proxy" );
   kernel().model_manager.register_node_model< music_message_in_proxy >( "music_message_in_proxy" );
-  kernel().model_manager.register_node_model< music_rate_in_proxy >( "music_rate_in_proxy" );
-  kernel().model_manager.register_node_model< music_rate_out_proxy >( "music_rate_out_proxy" );
 #endif
 
   // register all connection models
@@ -312,7 +305,6 @@ ModelsModule::init( SLIInterpreter* )
     "clopath_synapse", default_connection_model_flags | RegisterConnectionModelFlags::REQUIRES_CLOPATH_ARCHIVING );
   register_connection_model< ContDelayConnection >( "cont_delay_synapse" );
   register_connection_model< HTConnection >( "ht_synapse" );
-  register_connection_model< JonkeConnection >( "jonke_synapse" );
   register_connection_model< Quantal_StpConnection >( "quantal_stp_synapse" );
   register_connection_model< StaticConnection >( "static_synapse" );
   register_connection_model< StaticConnectionHomW >( "static_synapse_hom_w" );
@@ -328,9 +320,9 @@ ModelsModule::init( SLIInterpreter* )
   register_connection_model< TsodyksConnection >( "tsodyks_synapse" );
   register_connection_model< TsodyksConnectionHom >( "tsodyks_synapse_hom" );
   register_connection_model< Tsodyks2Connection >( "tsodyks2_synapse" );
-  register_connection_model< UrbanczikConnection >(
-    "urbanczik_synapse", default_connection_model_flags | RegisterConnectionModelFlags::REQUIRES_URBANCZIK_ARCHIVING );
   register_connection_model< VogelsSprekelerConnection >( "vogels_sprekeler_synapse" );
+//  register_connection_model< ShouvalConnection >( "shouval_synapse" );
+//  register_connection_model< ShouvalConnection2 >( "shouval2_synapse" );
 
   // register secondary connection models
   register_secondary_connection_model< GapJunction >(

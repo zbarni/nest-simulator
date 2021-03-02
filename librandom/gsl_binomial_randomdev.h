@@ -26,6 +26,9 @@
 #ifndef GSL_BINOMIAL_RANDOMDEV_H
 #define GSL_BINOMIAL_RANDOMDEV_H
 
+// Includes from libnestutil:
+#include "lockptr.h"
+
 // Includes from librandom:
 #include "gslrandomgen.h"
 #include "randomdev.h"
@@ -89,8 +92,8 @@ namespace librandom
 class GSL_BinomialRandomDev : public RandomDev
 {
 public:
-  // accept only shared_ptrs for initialization,
-  // otherwise creation of a shared_ptr would
+  // accept only lockPTRs for initialization,
+  // otherwise creation of a lock ptr would
   // occur as side effect---might be unhealthy
   GSL_BinomialRandomDev( RngPtr, double p_s = 0.5, unsigned int n_s = 1 );
   GSL_BinomialRandomDev( double p_s = 0.5, unsigned int n_s = 1 );

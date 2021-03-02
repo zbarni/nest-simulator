@@ -32,7 +32,6 @@
 #include <gsl/gsl_sf_gamma.h>
 
 // Includes from libnestutil:
-#include "dict_util.h"
 #include "numerics.h"
 
 // Includes from nestkernel:
@@ -147,9 +146,7 @@ nest::sinusoidal_gamma_generator::State_::get( DictionaryDatum& ) const
 }
 
 void
-nest::sinusoidal_gamma_generator::Parameters_::set( const DictionaryDatum& d,
-  const sinusoidal_gamma_generator& n,
-  Node* node )
+nest::sinusoidal_gamma_generator::Parameters_::set( const DictionaryDatum& d, const sinusoidal_gamma_generator& n )
 {
   if ( not n.is_model_prototype() && d->known( names::individual_spike_trains ) )
   {
@@ -163,27 +160,25 @@ nest::sinusoidal_gamma_generator::Parameters_::set( const DictionaryDatum& d,
     // this can happen only on model prototypes
     if ( individual_spike_trains_ )
     {
-      // will be counted up as connections are made
       num_trains_ = 0;
-    }
+    } // will be counted up as connections are made
     else
     {
-      // fixed
       num_trains_ = 1;
-    }
+    } // fixed
   }
 
-  if ( updateValueParam< double >( d, names::frequency, om_, node ) )
+  if ( updateValue< double >( d, names::frequency, om_ ) )
   {
     om_ *= 2.0 * numerics::pi / 1000.0;
   }
 
-  if ( updateValueParam< double >( d, names::phase, phi_, node ) )
+  if ( updateValue< double >( d, names::phase, phi_ ) )
   {
     phi_ *= numerics::pi / 180.0;
   }
 
-  if ( updateValueParam< double >( d, names::order, order_, node ) )
+  if ( updateValue< double >( d, names::order, order_ ) )
   {
     if ( order_ < 1.0 )
     {
@@ -195,13 +190,13 @@ nest::sinusoidal_gamma_generator::Parameters_::set( const DictionaryDatum& d,
      floating-point comparison issues under 32-bit Linux.
   */
   double dc_unscaled = 1e3 * rate_;
-  if ( updateValueParam< double >( d, names::rate, dc_unscaled, node ) )
+  if ( updateValue< double >( d, names::rate, dc_unscaled ) )
   {
     rate_ = 1e-3 * dc_unscaled; // scale to 1/ms
   }
 
   double ac_unscaled = 1e3 * amplitude_;
-  if ( updateValueParam< double >( d, names::amplitude, ac_unscaled, node ) )
+  if ( updateValue< double >( d, names::amplitude, ac_unscaled ) )
   {
     amplitude_ = 1e-3 * ac_unscaled; // scale to 1/ms
   }

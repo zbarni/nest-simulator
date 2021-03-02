@@ -39,7 +39,7 @@ References
 
 import nest
 import nest.voltage_trace
-import matplotlib.pyplot as plt
+import pylab
 
 nest.ResetKernel()
 
@@ -56,7 +56,7 @@ neuron = nest.Create("aeif_cond_alpha")
 # publication.
 
 
-neuron.set(a=4.0, b=80.5)
+nest.SetStatus(neuron, {"a": 4.0, "b": 80.5})
 
 ###############################################################################
 # Next we define the stimulus protocol. There are two DC generators,
@@ -64,17 +64,26 @@ neuron.set(a=4.0, b=80.5)
 
 dc = nest.Create("dc_generator", 2)
 
-dc.set(amplitude=[500.0, 800.0], start=[0.0,  500.0], stop=[200.0, 1000.0])
+nest.SetStatus(dc, [{"amplitude": 500.0, "start": 0.0, "stop": 200.0},
+                    {"amplitude": 800.0, "start": 500.0, "stop": 1000.0}])
+
 ###############################################################################
 # We connect the DC generators.
 
 nest.Connect(dc, neuron, 'all_to_all')
 
 ###############################################################################
-# And add a ``voltmeter`` to sample the membrane potentials from the neuron
-# in intervals of 0.1 ms.
+# And add a ``voltmeter`` to record the membrane potentials.
 
-voltmeter = nest.Create("voltmeter", params={'interval': 0.1})
+
+voltmeter = nest.Create("voltmeter")
+
+###############################################################################
+# We set the voltmeter to record in small intervals of 0.1 ms and connect the
+# voltmeter to the neuron.
+
+nest.SetStatus(voltmeter, {'interval': 0.1, "withgid": True, "withtime": True})
+
 nest.Connect(voltmeter, neuron)
 
 ###############################################################################
@@ -84,5 +93,4 @@ nest.Connect(voltmeter, neuron)
 nest.Simulate(1000.0)
 
 nest.voltage_trace.from_device(voltmeter)
-plt.axis([0, 1000, -80, -20])
-nest.voltage_trace.show()
+pylab.axis([0, 1000, -80, -20])

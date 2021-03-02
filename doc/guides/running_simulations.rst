@@ -1,5 +1,5 @@
 Running simulations
-===================
+==============================
 
 Introduction
 ------------
@@ -118,8 +118,6 @@ for details about neuron update in continuous time and the
 :doc:`documentation on connection management <connection_management>`
 for how to set the delay when creating synapses.
 
-.. _stepped_simulations:
-
 Splitting a simulation into multiple intervals
 ----------------------------------------------
 
@@ -191,63 +189,18 @@ a Poisson spike train using different seeds and output files for each run:
                               'rng_seeds': [100*n + 2]})
         pg = nest.Create('poisson_generator', params={'rate': 1000000.0})
         nrn= nest.Create('iaf_psc_alpha')
-        sr = nest.Create('spike_recorder',
+        sd = nest.Create('spike_detector',
                             params={'label': 'spikes-run{:02d}'.format(n),
-                                    'record_to': 'ascii'})
+                                    'to_file': True})
     
         nest.Connect(pg, nrn)
-        nest.Connect(nrn, sr)
+        nest.Connect(nrn, sd)
     
         nest.Simulate(100)
-
-Monitoring elapsed time
------------------------
-
-The progress of the simulation can be monitored by setting:
-
-::
-
-    SetKernelStatus({"print_time": True})
-
-If enabled, a line is printed to screen at every time step of the simulation to
-track the percentage, the absolute elapsed model time and the real-time factor,
-for example:
-
-::
-
-    [ 25% ] Model time: 250.0 ms, Real-time factor: 2.6711
-
-The *real-time factor* is defined as the quotient of *wall-clock time* (which
-is also known as real time) and the *model time* (which is the duration by
-which the state of the model is advanced in time, or in short, the argument to
-the ``Simulate()`` call):
-
-.. math::
-
-    q_\text{real} = \frac{T_\text{wall}}{T_\text{model}}
-
-If the real-time factor is larger than `1` as in the example above, the
-simulation runs slower than the wall-clock time.
-
-In case a simulation script contains multiple ``Simulate()`` calls,
-the percentage simulation time is reset to `0%` at the beginning of each call,
-but the absolute model time and the real-time factor account for the total
-elapsed times.
-
-The real-time factor should not be confused with the concept of speedup.
-*Speedup* refers to a ratio of wall-clock times, namely the wall-clock time
-needed to solve a problem serially and the wall-clock time needed to solve the
-same problem in parallel (e.g., by distributing the work across multiple
-threads or processes):
-
-.. math::
-
-    q_\text{speedup} = \frac{T_\text{wall, serial}}{T_\text{wall, parallel}}
-
-.. note::
-
-    For large, distributed simulations, it is recommended to set
-    ``{"print_time": False}`` to avoid the overhead of the print calls.
-    In these cases, the real-time factor can be computed by measuring the
-    wall-clock time manually and dividing by the set model time.
-
+    
+The ``ResetNetwork()`` function available in NEST 2 is incomplete in that it
+only resets the state of neurons and devices to default values and deletes
+spikes that are in the delivery pipeline. It does does not reset plastic
+synapses or delete spikes from the spike buffers of neurons. We will
+therefore remove the function in NEST 3 and already now **advise against
+using** ``ResetNetwork()``.

@@ -6,31 +6,30 @@ Table of Contents
    index
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: User Documentation
 
-   guides/nest2_to_nest3/nest2_to_nest3_overview
-   Download <download>
-   Install <installation/index>
+   download
+   installation/index
    getting_started
-   tutorials/index
-   guides/index
-   examples/index
-   models/index
-   ref_material/pynest_apis
    troubleshooting
+   tutorials/index
+   models/index
+   examples/index
+   topology/index
+   guides/index
    getting_help
+   ref_material/pynest_apis
 
 .. toctree::
    :maxdepth: 2
    :caption: Getting Involved
 
-   Community <community>
-   Contribute <contribute/index>
-   documentation_workflow/index
+   community
+   contribute/index
    Publications <https://www.nest-simulator.org/publications/>
    Developer Space <https://nest.github.io/nest-simulator/>
-   NEST Initiative <https://www.nest-initiative.org/>
+   NEST-Initiative <https://www.nest-initiative.org/>
 
 .. toctree::
    :maxdepth: 2

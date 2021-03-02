@@ -24,12 +24,13 @@
 
 // explicit instantiations
 template class AggregateDatum< nest::ConnectionID, &nest::NestModule::ConnectionType >;
-template class sharedPtrDatum< nest::NodeCollection, &nest::NestModule::NodeCollectionType >;
-template class sharedPtrDatum< nest::nc_const_iterator, &nest::NestModule::NodeCollectionIteratorType >;
+template class AggregateDatum< nest::GIDCollection, &nest::NestModule::GIDCollectionType >;
 
 // instantiate memory management pool
 template <>
 sli::pool ConnectionDatum::memory( sizeof( nest::ConnectionID ), 10000, 1 );
+template <>
+sli::pool GIDCollectionDatum::memory( sizeof( nest::GIDCollection ), 10000, 1 );
 
 // simple type printing
 template <>
@@ -37,6 +38,12 @@ void
 ConnectionDatum::print( std::ostream& out ) const
 {
   out << "/connectiontype";
+}
+template <>
+void
+GIDCollectionDatum::print( std::ostream& out ) const
+{
+  out << "/gidcollectiontype";
 }
 
 // printing of the objects
@@ -46,17 +53,9 @@ ConnectionDatum::pprint( std::ostream& out ) const
 {
   print_me( out );
 }
-
 template <>
 void
-NodeCollectionDatum::pprint( std::ostream& out ) const
+GIDCollectionDatum::pprint( std::ostream& out ) const
 {
-  this->operator->()->print_me( out );
-}
-
-template <>
-void
-NodeCollectionIteratorDatum::pprint( std::ostream& out ) const
-{
-  this->operator->()->print_me( out );
+  print_me( out );
 }

@@ -34,19 +34,21 @@
 (unittest) run
 /unittest using
 
+
 /single_trial
 {
   << >> begin
     /h Set
     ResetKernel
-    << /resolution h >> SetKernelStatus
+    0 << /resolution h >> SetStatus
   
     /poisson_generator_ps Create /pg Set
     pg << /rate 1000. >> SetStatus
 
-    /neurons /iaf_psc_delta 1000 Create def
-
-    pg neurons Connect
+    /iaf_psc_delta [1000] LayoutNetwork /net Set
+    /neurons net GetLocalLeaves def
+          
+    [pg] neurons Connect
 
     1000. Simulate
   end

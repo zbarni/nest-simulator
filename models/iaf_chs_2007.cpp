@@ -26,7 +26,6 @@
 #include <limits>
 
 // Includes from libnestutil:
-#include "dict_util.h"
 #include "numerics.h"
 
 // Includes from nestkernel:
@@ -102,13 +101,13 @@ nest::iaf_chs_2007::Parameters_::get( DictionaryDatum& d ) const
 }
 
 void
-nest::iaf_chs_2007::Parameters_::set( const DictionaryDatum& d, State_& s, Node* node )
+nest::iaf_chs_2007::Parameters_::set( const DictionaryDatum& d, State_& s )
 {
-  updateValueParam< double >( d, names::V_reset, U_reset_, node );
-  updateValueParam< double >( d, names::V_epsp, U_epsp_, node );
-  updateValueParam< double >( d, names::tau_epsp, tau_epsp_, node );
-  updateValueParam< double >( d, names::tau_reset, tau_reset_, node );
-  updateValueParam< double >( d, names::V_noise, U_noise_, node );
+  updateValue< double >( d, names::V_reset, U_reset_ );
+  updateValue< double >( d, names::V_epsp, U_epsp_ );
+  updateValue< double >( d, names::tau_epsp, tau_epsp_ );
+  updateValue< double >( d, names::tau_reset, tau_reset_ );
+  updateValue< double >( d, names::V_noise, U_noise_ );
 
   const bool updated_noise = updateValue< std::vector< double > >( d, names::noise, noise_ );
   if ( updated_noise )
@@ -144,9 +143,9 @@ nest::iaf_chs_2007::State_::get( DictionaryDatum& d ) const
 }
 
 void
-nest::iaf_chs_2007::State_::set( DictionaryDatum const& d, Node* node )
+nest::iaf_chs_2007::State_::set( DictionaryDatum const& d )
 {
-  updateValueParam< double >( d, names::V_m, V_m_, node );
+  updateValue< double >( d, names::V_m, V_m_ );
 }
 
 nest::iaf_chs_2007::Buffers_::Buffers_( iaf_chs_2007& n )

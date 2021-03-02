@@ -44,8 +44,9 @@ class TestIssue578():
         )
         # Update the SP interval
         nest.EnableStructuralPlasticity()
-        nest.SetKernelStatus({
-            'structural_plasticity_update_interval': 1000.,
+        nest.SetStructuralPlasticityStatus({
+            'structural_plasticity_update_interval':
+            100,
         })
 
         growth_curve = {
@@ -73,12 +74,12 @@ class TestIssue578():
             'synaptic_elements': structural_p_elements_E})
 
         # synapses
-        synDictE = {'synapse_model': 'static_synapse',
+        synDictE = {'model': 'static_synapse',
                     'weight': 3.,
                     'pre_synaptic_element': 'Axon_ex',
                     'post_synaptic_element': 'Den_ex'}
 
-        nest.SetKernelStatus({
+        nest.SetStructuralPlasticityStatus({
             'structural_plasticity_synapses': {
                 'synapseEE': synDictE,
             }
@@ -86,7 +87,7 @@ class TestIssue578():
 
         try:
             nest.Simulate(200 * 1000)
-        except Exception:
+        except:
             print(sys.exc_info()[0])
             self.fail("Exception during simulation")
 

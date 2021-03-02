@@ -45,8 +45,9 @@ References
 """
 
 import nest
-import matplotlib.pyplot as plt
+import pylab as pl
 import numpy
+import random
 
 n_neuron = 500
 gap_per_neuron = 60
@@ -63,9 +64,9 @@ nest.ResetKernel()
 
 ###############################################################################
 # First we set the random seed, adjust the kernel settings and create
-# ``hh_psc_alpha_gap`` neurons, ``spike_recorder`` and ``poisson_generator``.
+# ``hh_psc_alpha_gap`` neurons, ``spike_detector`` and ``poisson_generator``.
 
-numpy.random.seed(1)
+random.seed(1)
 
 nest.SetKernelStatus({'resolution': 0.05,
                       'total_num_virtual_procs': threads,
@@ -81,7 +82,8 @@ nest.SetKernelStatus({'resolution': 0.05,
 
 neurons = nest.Create('hh_psc_alpha_gap', n_neuron)
 
-sr = nest.Create("spike_recorder")
+sd = nest.Create("spike_detector", params={'to_file': False,
+                                           'to_memory': True})
 pg = nest.Create("poisson_generator", params={'rate': 500.0})
 
 ###############################################################################
@@ -94,27 +96,27 @@ pg = nest.Create("poisson_generator", params={'rate': 500.0})
 
 conn_dict = {'rule': 'fixed_indegree',
              'indegree': inh_per_neuron,
-             'allow_autapses': False,
-             'allow_multapses': True}
+             'autapses': False,
+             'multapses': True}
 
-syn_dict = {'synapse_model': 'static_synapse',
+syn_dict = {'model': 'static_synapse',
             'weight': j_inh,
             'delay': delay}
 
 nest.Connect(neurons, neurons, conn_dict, syn_dict)
 
-nest.Connect(pg, neurons, 'all_to_all',
-             syn_spec={'synapse_model': 'static_synapse',
-                       'weight': j_exc,
-                       'delay': delay})
+nest.Connect(pg, neurons, 'all_to_all', syn_spec={'model': 'static_synapse',
+                                                  'weight': j_exc,
+                                                  'delay': delay})
 
 ###############################################################################
-# Then the neurons are connected to the ``spike_recorder`` and the initial
+# Then the neurons are connected to the ``spike_detector`` and the initial
 # membrane potential of each neuron is set randomly between -40 and -80 mV.
 
-nest.Connect(neurons, sr)
+nest.Connect(neurons, sd)
 
-neurons.V_m = nest.random.uniform(min=-80., max=-40.)
+for i in range(n_neuron):
+    nest.SetStatus([neurons[i]], {'V_m': (-40. - 40. * random.random())})
 
 #######################################################################################
 # Finally gap junctions are added to the network. :math:`(60*500)/2` ``gap_junction``
@@ -128,29 +130,27 @@ neurons.V_m = nest.random.uniform(min=-80., max=-40.)
 # using the ``make_symmetric`` flag for ``one_to_one`` connections.
 
 n_connection = int(n_neuron * gap_per_neuron / 2)
-neuron_list = neurons.tolist()
-connections = numpy.random.choice(neuron_list, [n_connection, 2])
+connections = numpy.transpose(
+    [random.sample(neurons, 2) for _ in range(n_connection)])
 
-for source_node_id, target_node_id in connections:
-    nest.Connect(nest.NodeCollection([source_node_id]),
-                 nest.NodeCollection([target_node_id]),
-                 {'rule': 'one_to_one', 'make_symmetric': True},
-                 {'synapse_model': 'gap_junction', 'weight': gap_weight})
+nest.Connect(connections[0], connections[1],
+             {'rule': 'one_to_one', 'make_symmetric': True},
+             {'model': 'gap_junction', 'weight': gap_weight})
 
 ###############################################################################
 # In the end we start the simulation and plot the spike pattern.
 
 nest.Simulate(simtime)
 
-times = sr.get('events', 'times')
-spikes = sr.get('events', 'senders')
-n_spikes = sr.n_events
+times = nest.GetStatus(sd, 'events')[0]['times']
+spikes = nest.GetStatus(sd, 'events')[0]['senders']
+n_spikes = nest.GetStatus(sd, 'n_events')[0]
 
 hz_rate = (1000.0 * n_spikes / simtime) / n_neuron
 
-plt.figure(1)
-plt.plot(times, spikes, 'o')
-plt.title('Average spike rate (Hz): %.2f' % hz_rate)
-plt.xlabel('time (ms)')
-plt.ylabel('neuron no')
-plt.show()
+pl.figure(1)
+pl.plot(times, spikes, 'o')
+pl.title('Average spike rate (Hz): %.2f' % hz_rate)
+pl.xlabel('time (ms)')
+pl.ylabel('neuron no')
+pl.show()

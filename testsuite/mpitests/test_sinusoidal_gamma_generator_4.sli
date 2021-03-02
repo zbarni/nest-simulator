@@ -28,7 +28,7 @@ Synopsis: nest_indirect test_sinusoidal_gamma_generator_4.sli -> -
 Description:
    Creates a sinusoidally modulated Gamma generator emitting
    individual spike trains to each of its targets and sends spikes to
-   spike recorder. Identical to ..._2, but with single generator, not one per VP.
+   spike detector. Identical to ..._2, but with single generator, not one per VP.
 
 Author:  December 2012, May 2013, Plesser, based on test_gamma_generator.sli
 
@@ -43,7 +43,7 @@ skip_if_not_threaded
 /total_vps 4 def
 
 % run simulation with or without individual trains
-% bool spg_tester -> spike recorder
+% bool spg_tester -> spike detector
 /spg_tester
 {
   /individual Set
@@ -51,10 +51,11 @@ skip_if_not_threaded
   /nodes total_vps 2 mul def  
 
   % set resolution and total/local number of threads
+  0
   <<
   /resolution  0.1
   /total_num_virtual_procs total_vps
-  >> SetKernelStatus
+  >> SetStatus
 
   /sinusoidal_gamma_generator
   << 
@@ -66,15 +67,18 @@ skip_if_not_threaded
   >> SetDefaults
 
   /gen /sinusoidal_gamma_generator Create def
-  /sr /spike_recorder Create def
+  /sd /spike_detector << /record_to [/memory] 
+                         /withgid true 
+                         /withtime true 
+                      >> Create def
   /pnet [ nodes ] { ; /parrot_neuron Create } Table def
 
-  pnet { gen exch Connect } forall
-  pnet { sr Connect } forall
+  [gen] pnet Connect
+  pnet [sd] Connect
   
   10. Simulate
 
-  sr
+  sd
 } def
 
 % second test: individual spike trains, equality for different splits
@@ -83,10 +87,10 @@ skip_if_not_threaded
   % run test only if generator is known, otherwise, leave empty dict
   modeldict /sinusoidal_gamma_generator known
   {
-    /sr true spg_tester def
+    /sd true spg_tester def
 
     % get events, replace vectors with SLI arrays    
-    /ev sr /events get def
+    /ev sd /events get def
     ev keys { /k Set ev dup k get cva k exch put } forall
     ev 
   }

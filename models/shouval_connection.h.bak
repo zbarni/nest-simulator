@@ -1,0 +1,1311 @@
+
+/*
+*  shouval_connection.h
+*
+*  This file is part of NEST.
+*
+*  Copyright (C) 2004 The NEST Initiative
+*
+*  NEST is free software: you can redistribute it and/or modify
+*  it under the terms of the GNU General Public License as published by
+*  the Free Software Foundation, either version 2 of the License, or
+*  (at your option) any later version.
+*
+*  NEST is distributed in the hope that it will be useful,
+*  but WITHOUT ANY WARRANTY; without even the implied warranty of
+*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*  GNU General Public License for more details.
+*
+*  You should have received a copy of the GNU General Public License
+*  along with NEST.  If not, see <http://www.gnu.org/licenses/>.
+*
+*  2020-10-29 13:15:31.388998
+*/
+
+#ifndef SHOUVAL_CONNECTION_H
+#define SHOUVAL_CONNECTION_H
+
+// C++ includes:
+#include <cmath>
+#include <gsl/gsl_errno.h>
+#include <gsl/gsl_matrix.h>
+#include <gsl/gsl_odeiv.h>
+//#include <cstdio>
+#include <sstream>
+
+
+// Includes from nestkernel:
+#include "common_synapse_properties.h"
+#include "connection.h"
+#include "connector_model.h"
+#include "event.h"
+//#include "logging.h"
+
+// Includes from sli:
+#include "dictdatum.h"
+#include "dictutils.h"
+
+
+/** @BeginDocumentation
+
+Authors
++++++++
+
+Zajzon
+
+
+**/
+
+#define DYAD_POST_TYPE
+
+namespace nest {
+
+/** @BeginDocumentation
+
+**/
+
+struct SolverParams_
+{
+  SolverParams_() {};
+  SolverParams_(const SolverParams_ &sp)
+  {
+    params[tau_w] = sp.params[tau_w];
+    params[Tp_max_] = sp.params[Tp_max_];
+    params[Td_max_] = sp.params[Td_max_];
+    params[tau_ltp_] = sp.params[tau_ltp_];
+    params[tau_ltd_] = sp.params[tau_ltd_];
+    params[eta_ltp_] = sp.params[eta_ltp_];
+    params[eta_ltd_] = sp.params[eta_ltd_];
+    params[reward_on] = sp.params[reward_on];
+    params[refractory_on] = sp.params[refractory_on];
+  };
+
+  enum SolverParamsVecElems
+  {
+    tau_w,
+    Tp_max_,
+    Td_max_,
+    tau_ltp_,
+    tau_ltd_,
+    eta_ltp_,
+    eta_ltd_,
+    learn_rate,
+    reward_on,
+    refractory_on,
+
+    STATE_VEC_SIZE
+  };
+  double params[STATE_VEC_SIZE];
+};
+
+struct State_
+{
+  enum StateVecElems
+  {
+    // numeric solver state variables
+    w,
+    trace_ltp,
+    trace_ltd,
+    rate_pre,
+    rate_post,
+
+    STATE_VEC_SIZE
+  };
+
+  //! state vector, must be C-array for GSL solver
+  double y_[STATE_VEC_SIZE];
+
+  State_() {};
+  State_( const State_& ) {};
+};
+
+extern "C" inline int ShouvalConnectionDynamics(double t, const double y[], double f[], void* psyn)
+{
+  typedef nest::State_ S;
+  const SolverParams_& sP = *( reinterpret_cast< SolverParams_* > ( psyn ) );
+
+  const double& rate_pre = y[ S::rate_pre ];
+  const double& rate_post = y[ S::rate_post ];
+
+  double hebbian_ltp = sP.params[SolverParams_::eta_ltp_] * rate_pre * rate_post;
+  double hebbian_ltd = sP.params[SolverParams_::eta_ltd_] * rate_pre * rate_post;
+  double eff_saturation_ltp = sP.params[SolverParams_::Tp_max_] * hebbian_ltp /
+                              (sP.params[SolverParams_::Tp_max_] + hebbian_ltp);
+  double eff_tc_ltp = sP.params[SolverParams_::Tp_max_] * sP.params[SolverParams_::tau_ltp_] /
+                      (sP.params[SolverParams_::Tp_max_] + hebbian_ltp);
+
+  double eff_saturation_ltd = sP.params[SolverParams_::Td_max_] * hebbian_ltd /
+                              (sP.params[SolverParams_::Td_max_] + hebbian_ltd);
+  double eff_tc_ltd = sP.params[SolverParams_::Td_max_] * sP.params[SolverParams_::tau_ltd_] /
+                      (sP.params[SolverParams_::Td_max_] + hebbian_ltd);
+
+  f[ S::rate_pre ] = -rate_pre / sP.params[ SolverParams_::tau_w ];
+  f[ S::rate_post ] = -rate_post / sP.params[ SolverParams_::tau_w ];
+
+  if (sP.params[SolverParams_::refractory_on] > 1e-5) {
+    // refractory on!
+    f[ S::trace_ltp ] = 0;
+    f[ S::trace_ltd ] = 0;
+  }
+  else {
+    f[ S::trace_ltp ] = -1 / eff_tc_ltp * (y[ S::trace_ltp ] - eff_saturation_ltp);
+    f[ S::trace_ltd ] = -1 / eff_tc_ltd * (y[ S::trace_ltd ] - eff_saturation_ltd);
+  }
+
+  // reward on!
+  if (sP.params[SolverParams_::reward_on] > 1e-5) {
+    f[ S::w ] = sP.params[SolverParams_::learn_rate] * (y[ S::trace_ltp ] - y[ S::trace_ltd ]);
+  }
+  else {
+    f[ S::w ] = 0;
+  }
+
+  return GSL_SUCCESS;
+}
+
+/** @BeginDocumentation
+
+**/
+//class ShouvalConnectionCommonSynapseProperties : public CommonSynapseProperties {
+//public:
+//
+//  ShouvalConnectionCommonSynapseProperties()
+//    : CommonSynapseProperties() {
+//  }
+//
+//  /**
+//   * Get all properties and put them into a dictionary.
+//   */
+//  void get_status(DictionaryDatum &d) const {
+//    CommonSynapseProperties::get_status(d);
+//  }
+//
+//
+//  /**
+//   * Set properties from the values given in dictionary.
+//   */
+//  void set_status(const DictionaryDatum &d, ConnectorModel &cm) {
+//    CommonSynapseProperties::set_status(d, cm);
+//  }
+//
+//  // N.B.: we define all parameters as public for easy reference conversion later on.
+//  // This may or may not benefit performance (TODO: compare with inline getters/setters)
+//};
+
+
+/**
+ * Class representing a static connection.
+ */
+template< typename targetidentifierT >
+class ShouvalConnection : public Connection< targetidentifierT >
+{
+
+public:
+//  typedef ShouvalConnectionCommonSynapseProperties CommonPropertiesType;
+  typedef CommonSynapseProperties CommonPropertiesType;
+  typedef Connection<targetidentifierT> ConnectionBase;
+
+  /**
+  * Default constructor.
+  *
+  * Sets default values for all parameters (skipping common properties).
+  *
+  * Needed by GenericConnectorModel.
+  */
+  ShouvalConnection();
+
+
+  /**
+  * Copy constructor from a property object.
+  *
+  * Sets default values for all parameters (skipping common properties).
+  *
+  * Needs to be defined properly in order for GenericConnector to work.
+  */
+  ShouvalConnection(const ShouvalConnection &);
+
+//  void init_buffers_();
+  void init_internals_block_symbols();
+
+  // Explicitly declare all methods inherited from the dependent base
+  // ConnectionBase. This avoids explicit name prefixes in all places these
+  // functions are used. Since ConnectionBase depends on the template parameter,
+  // they are not automatically found in the base class.
+  using ConnectionBase::get_delay_steps;
+  using ConnectionBase::set_delay_steps;
+  using ConnectionBase::get_delay;
+  using ConnectionBase::set_delay;
+  using ConnectionBase::get_rport;
+  using ConnectionBase::get_target;
+
+  /**
+   * Get all properties of this connection and put them into a dictionary.
+   */
+  void get_status( DictionaryDatum &d ) const;
+
+  /**
+   * Set properties of this connection from the values given in dictionary.
+   */
+  void set_status( const DictionaryDatum &d, ConnectorModel &cm );
+
+  /**
+ * Send an event to the receiver of this connection.
+ * \param e The event to send
+ * \param cp common properties of all synapses (empty).
+ */
+  void send( Event &e, thread tid, const CommonSynapseProperties &cp );
+
+
+  class ConnTestDummyNode : public ConnTestDummyNodeBase
+  {
+  public:
+    // Ensure proper overriding of overloaded virtual functions.
+    // Return values from functions are ignored.
+    using ConnTestDummyNodeBase::handles_test_event;
+
+    port
+    handles_test_event( SpikeEvent &, rport ) {
+      return invalid_port_;
+    }
+  };
+
+  void
+  check_connection( Node &s, Node &t, rport receptor_type, const CommonPropertiesType & )
+  {
+    ConnTestDummyNode dummy_target;
+    ConnectionBase::check_connection_(dummy_target, s, t, receptor_type);
+    t.register_stdp_connection(t_lastspike_ - get_delay(), get_delay());
+  }
+
+  inline void set_weight(double w) {
+    weight_ = w;
+  }
+
+  void
+  print_state(std::ostringstream &msg) {
+    msg << "\tState:"
+        << "\n\t\tT_ltp / T_ltd: " << S_.y_[State_::trace_ltp] << " / " << S_.y_[State_::trace_ltd]
+        << "\n\t\tw: " << S_.y_[State_::w] << "\n";
+  }
+
+  void
+  store_interval_sampling_state(const double cur_tp, const double ref_tp) {
+    /**
+     * Sample and log/store LTP and LTD traces, as well as the weight, at regular intervals to stdout.
+     */
+    if (P_.sampling_interval >= 1.0 and cur_tp == ref_tp) {
+      V_.sampled_times.push_back(ref_tp);
+      V_.sampled_ltp.push_back(S_.y_[State_::trace_ltp]);
+      V_.sampled_ltd.push_back(S_.y_[State_::trace_ltd]);
+      V_.sampled_weights.push_back(S_.y_[State_::w]);
+      V_.sampled_hebbian.push_back(S_.y_[State_::rate_pre] * S_.y_[State_::rate_post]);
+    }
+  }
+
+  bool check_and_advance_reward_counter(const double t_spike, std::ostringstream &msg) {
+    /**
+     *
+     */
+    // advance reward counter if current spike is beyond the next reward onset
+    if (V_.__t_reward_idx + 1 < P_.reward_times.size() and
+        t_spike >= P_.reward_times[V_.__t_reward_idx + 1])
+    {
+      ++V_.__t_reward_idx;
+      msg << "advance reward counter: " << P_.reward_times[V_.__t_reward_idx] << "\n";
+      return true;
+    }
+    return false;
+  }
+
+  void
+  evolve_dynamics(const double t_spike, const int tid) {
+    /**
+     *
+     */
+    ODEStruct1_ *B_ = &B_vec_[tid];
+
+    if (!B_->__s)
+    {
+      assert(B_->__s == 0);
+      assert((&(B_vec_[tid + 1]))->__s == 0);
+      init_buffers_( *B_ );
+      assert( B_->__s != 0 && "GSL buffer initialization unsuccessful!" );
+      std::cout << "Initialized buffer @ " << B_ << " for thread " << tid << "!" << std::endl;
+      std::cout << ">>> step: " << B_->__integration_step << std::endl;
+    }
+    std::ostringstream msg;
+    B_->__integration_step = nest::Time::get_resolution().get_ms();  // start with smallest step possible
+    SolverParams_ *tmpSP = reinterpret_cast<SolverParams_*>(B_->__sys.params);
+    // update some parameters so that ODE solver matches current values
+    tmpSP->params[SolverParams_::tau_w] = P_.tau_w;
+    tmpSP->params[SolverParams_::Tp_max_] = P_.Tp_max;
+    tmpSP->params[SolverParams_::Td_max_] = P_.Td_max;
+    tmpSP->params[SolverParams_::tau_ltp_] = P_.tau_ltp;
+    tmpSP->params[SolverParams_::tau_ltd_] = P_.tau_ltd;
+    tmpSP->params[SolverParams_::eta_ltp_] = P_.eta_ltp;
+    tmpSP->params[SolverParams_::eta_ltd_] = P_.eta_ltd;
+    tmpSP->params[SolverParams_::learn_rate] = P_.learn_rate;
+
+    const double t_curspike_ = t_spike;
+    double t1;
+    double tp = t_lastspike_;
+
+    msg << "Processing steps (evolve dynamics)...\n";
+
+    while (abs(tp - t_curspike_) > 0.01) {
+      double t_reward_on = P_.reward_times[V_.__t_reward_idx];
+      double t_reward_off = P_.reward_times[V_.__t_reward_idx] + P_.T_reward;
+      double t_ref_on = t_reward_off + nest::Time::get_resolution().get_ms();
+      double t_ref_off = t_ref_on + P_.T_tr;
+
+      assert(t_reward_on && "Reward ON must be defined");
+      assert(t_reward_off && "Reward OFF must be defined");
+      msg << "State:"
+          << "\n\tCURRENT TP: " << tp
+          << "\n\tt_reward_on / off: " << t_reward_on << " / " << t_reward_off
+          << "\n\tt_refractory_on / off: " << t_ref_on << " / " << t_ref_off << "\n";
+
+      ///////////////////////
+      // before reward onset
+      if (tp < t_reward_on) {
+        t1 = std::min(t_curspike_, t_reward_on) - tp;
+
+        msg << "==> \tt_lastspike_ < t_reward_on: [" << tp
+            << ", " << std::min(t_curspike_, t_reward_on) << "] => " << t1 << " steps\n";
+
+        double t = 0.0;
+        while ( t < t1 )
+        {
+          std::cout << "[START] GSL ODEIV EVOLVE foo thread " << tid << std::endl;
+          const int status = gsl_odeiv_evolve_apply(B_->__e, B_->__c, B_->__s, &(B_->__sys), &t, t1,
+                                                    &B_->__integration_step, S_.y_);
+          std::cout << "[STOP] GSL ODEIV EVOLVE foo thread " << tid << std::endl;
+          assert(S_.y_[State_::trace_ltd] >= 0. && "Trace can't be negative!");
+          assert(S_.y_[State_::trace_ltp] >= 0. && "Trace can't be negative!");
+          if (status != GSL_SUCCESS) {
+            throw nest::GSLSolverFailure("ShouvalConnection", status);
+          }
+        }
+        print_state(msg);
+        tp = std::min(t_curspike_, t_reward_on);
+      }
+
+      //////////////////////////////////////////////////////
+      // during reward window
+      if (t_curspike_ >= t_reward_on && tp < t_reward_off) {
+        // if tp == t_reward_on, we are at the moment of reward; dump the time and trace values
+        store_interval_sampling_state(tp, t_reward_on);
+
+        tmpSP->params[SolverParams_::reward_on] = 1;
+        t1 = std::min(t_curspike_, t_reward_off) - tp;
+
+        msg << "==> \tt_curspike_ >= t_reward_on (REWARD Window): ["
+            << tp << ", " << std::min(t_curspike_, t_reward_off) << "] => " << t1 << " steps\n";
+
+        double t = 0.0;
+        while ( t < t1 )
+        {
+          std::cout << "[START] GSL ODEIV EVOLVE bar thread " << tid << std::endl;
+          const int status = gsl_odeiv_evolve_apply(B_->__e, B_->__c, B_->__s, &(B_->__sys), &t, t1,
+                                                    &B_->__integration_step, S_.y_);
+          std::cout << "[STOP] GSL ODEIV EVOLVE bar thread " << tid << std::endl;
+
+          if (status != GSL_SUCCESS) {
+            throw nest::GSLSolverFailure("ShouvalConnection", status);
+          }
+        }
+        tmpSP->params[SolverParams_::reward_on] = 0;
+        print_state(msg);
+        tp = std::min(t_curspike_, t_reward_off);
+        store_interval_sampling_state(tp, t_reward_off);
+      }
+
+      ////////////////////////////////////////////////
+      // during eligibility refractory window
+      if (t_curspike_ >= t_ref_on && tp < t_ref_off) {
+        tmpSP->params[SolverParams_::refractory_on] = 1;
+        t1 = std::min(t_curspike_, t_ref_off) - std::max(tp, t_ref_on);
+
+        msg << "==> \tt_curspike_ >= t_ref_on (Refractory Window): ["
+            << std::max(tp, t_ref_on) << ", " << std::min(t_curspike_, t_ref_off)
+            << "] => " << t1 << " steps\n";
+
+        double t = 0.0;
+        while ( t < t1 )
+        {
+          std::cout << "[START] GSL ODEIV EVOLVE qux thread " << tid << std::endl;
+          const int status = gsl_odeiv_evolve_apply(B_->__e, B_->__c, B_->__s, &(B_->__sys), &t, t1,
+                                                    &B_->__integration_step, S_.y_);
+          std::cout << "[STOP] GSL ODEIV EVOLVE qux thread " << tid << std::endl;
+
+          if (status != GSL_SUCCESS) {
+            throw nest::GSLSolverFailure("ShouvalConnection", status);
+          }
+        }
+        tmpSP->params[SolverParams_::refractory_on] = 0;
+
+        // need to reset traces during refractory window !!!
+        S_.y_[State_::trace_ltp] = 0;
+        S_.y_[State_::trace_ltd] = 0;
+        print_state(msg);
+        tp = std::min(t_curspike_, t_ref_off);
+        store_interval_sampling_state(tp, t_ref_off);
+      }
+
+      ////////////////////////////////////////////////////////////
+      // after eligibility refractory window offset
+      if (t_curspike_ > t_ref_off and P_.sampling_interval < 1.) {
+        double next_reward_on = 1e12;
+        // check if current spike is actually beyond the next reward zone
+        if (check_and_advance_reward_counter(t_curspike_, msg)) {
+          next_reward_on = P_.reward_times[V_.__t_reward_idx];
+        }
+        t1 = std::min(t_curspike_, next_reward_on) - std::max(tp, t_ref_off);
+
+        msg << "==> \tt_curspike_ > t_ref_off (Refractory Window): ["
+            << std::max(tp, t_ref_off) << ", " << std::max(tp, t_ref_off) + t1
+            << "] => " << t1 << " steps\n";
+
+        double t = 0.0;
+        while ( t < t1 )
+        {
+          std::cout << "[START] GSL ODEIV EVOLVE asd thread " << tid << std::endl;
+          const int status = gsl_odeiv_evolve_apply(B_->__e, B_->__c, B_->__s, &(B_->__sys), &t, t1,
+                                                    &B_->__integration_step, S_.y_);
+          std::cout << "[STOP] GSL ODEIV EVOLVE asd thread " << tid << std::endl;
+
+          if (status != GSL_SUCCESS) {
+            throw nest::GSLSolverFailure("ShouvalConnection", status);
+          }
+        }
+        print_state(msg);
+        tp = std::min(t_curspike_, next_reward_on);
+      }
+        ////////////////////////////////////
+        /// try to sample inbetween
+      else if (t_curspike_ > t_ref_off) {
+        msg << "==> \tt_curspike_ > t_ref_off (Outside Refractory Window): interval sampling!!!"
+               " [tp = " << tp << ", t_curspike_ = " << t_curspike_ << "\n";
+
+        double next_reward_on = 1e12;
+        // check if current spike is actually beyond the next reward zone
+        if (check_and_advance_reward_counter(t_curspike_, msg)) {
+          next_reward_on = P_.reward_times[V_.__t_reward_idx];
+        }
+
+        // stop either at next reward onset or t_curspike_, whichever is sooner
+        double stopping_tp = std::min(t_curspike_, next_reward_on);
+
+        // from previous t_ref_off, sample at regular intervals
+        while (tp < stopping_tp) {
+          int n_next_interval = (int)(floor((tp - t_ref_off) / P_.sampling_interval) + 1);
+          double next_sampling_tp = t_ref_off + P_.sampling_interval * n_next_interval;
+
+          t1 = std::min(next_sampling_tp, stopping_tp) - std::max(tp, t_ref_off);
+
+          msg << "========---- >>> \tSampling " << t1 << " steps between [" << std::max(tp, t_ref_off)
+              << " - " << std::min(next_sampling_tp, stopping_tp) << "]"<< std::endl;
+
+          double t = 0.0;
+          while ( t < t1 )
+          {
+            std::cout << "[START] GSL ODEIV EVOLVE wef thread " << tid << std::endl;
+            const int status = gsl_odeiv_evolve_apply(B_->__e, B_->__c, B_->__s, &(B_->__sys), &t, t1,
+                                                      &B_->__integration_step, S_.y_);
+            std::cout << "[START] GSL ODEIV EVOLVE wef thread " << tid << std::endl;
+
+            if (status != GSL_SUCCESS) {
+              throw nest::GSLSolverFailure("ShouvalConnection", status);
+            }
+          }
+          print_state(msg);
+          tp += t1;
+          store_interval_sampling_state(tp, tp);
+        }
+      }
+    }
+    LOG(M_DEBUG, "ShouvalConnection::evolve_dynamics()", msg.str());
+  }
+
+
+private:
+  double weight_;
+  double t_lastspike_;
+
+
+
+  /* getters/setters for initial values block (excluding functions) */
+
+  inline double get_w() const {
+    return S_.y_[State_::w];
+  }
+
+  inline void set_w(const double __v) {
+    S_.y_[State_::w] = __v;
+  }
+
+  inline double get_trace_ltp() const {
+    return S_.y_[State_::trace_ltp];
+  }
+
+  inline void set_trace_ltp(const double __v) {
+    S_.y_[State_::trace_ltp] = __v;
+  }
+
+  inline double get_trace_ltd() const {
+    return S_.y_[State_::trace_ltd];
+  }
+
+  inline void set_trace_ltd(const double __v) {
+    S_.y_[State_::trace_ltd] = __v;
+  }
+
+  inline double get_rate_pre() const {
+    return S_.y_[State_::rate_pre];
+  }
+
+  inline void set_rate_pre(const double __v) {
+    S_.y_[State_::rate_pre] = __v;
+  }
+
+  inline double get_rate_post() const {
+    return S_.y_[State_::rate_post];
+  }
+
+  inline void set_rate_post(const double __v) {
+    S_.y_[State_::rate_post] = __v;
+  }
+
+  /* getters/setters for parameters */
+  inline double get_tau_w() const {
+    return P_.tau_w;
+  }
+
+  inline void set_tau_w(const double __v) {
+    P_.tau_w = __v;
+  }
+
+  inline double get_tau_ltp() const {
+    return P_.tau_ltp;
+  }
+
+  inline void set_tau_ltp(const double __v) {
+    P_.tau_ltp = __v;
+  }
+
+  inline double get_tau_ltd() const {
+    return P_.tau_ltd;
+  }
+
+  inline void set_tau_ltd(const double __v) {
+    P_.tau_ltd = __v;
+  }
+
+  inline double get_Tp_max() const {
+    return P_.Tp_max;
+  }
+
+  inline void set_Tp_max(const double __v) {
+    P_.Tp_max = __v;
+  }
+
+  inline double get_Td_max() const {
+    return P_.Td_max;
+  }
+
+  inline void set_Td_max(const double __v) {
+    P_.Td_max = __v;
+  }
+
+  inline double get_eta_ltp() const {
+    return P_.eta_ltp;
+  }
+
+  inline void set_eta_ltp(const double __v) {
+    P_.eta_ltp = __v;
+  }
+
+  inline double get_eta_ltd() const {
+    return P_.eta_ltd;
+  }
+
+  inline void set_eta_ltd(const double __v) {
+    P_.eta_ltd = __v;
+  }
+
+  inline double get_T_tr() const {
+    return P_.T_tr;
+  }
+
+  inline void set_T_tr(const double __v) {
+    P_.T_tr = __v;
+  }
+
+  inline double get_T_reward() const {
+    return P_.T_reward;
+  }
+
+  inline void set_T_reward(const double __v) {
+    P_.T_reward = __v;
+  }
+
+  inline double get_the_delay() const {
+    return P_.the_delay;
+  }
+
+  inline void set_the_delay(const double __v) {
+    P_.the_delay = __v;
+  }
+
+  inline double get_learn_rate() const {
+    return P_.learn_rate;
+  }
+
+  inline void set_learn_rate(const double __v) {
+    P_.learn_rate = __v;
+  }
+
+  inline std::vector< double > get_reward_times() const {
+    return P_.reward_times;
+  }
+
+  inline void set_reward_times(const std::vector< double > __v) {
+    P_.reward_times = __v;
+  }
+
+  //////
+  inline double get_sampling_interval() const {
+    return P_.sampling_interval;
+  }
+
+  inline void set_sampling_interval(const double __v) {
+    P_.sampling_interval = __v;
+  }
+
+  //////
+  inline std::vector< double > get_sampled_times() const {
+    return V_.sampled_times;
+  }
+
+  inline void set_sampled_times(const std::vector< double > __v) {
+    V_.sampled_times = __v;
+  }
+
+  //////
+  inline std::vector< double > get_sampled_ltp() const {
+    return V_.sampled_ltp;
+  }
+
+  inline void set_sampled_ltp(const std::vector< double > __v) {
+    V_.sampled_ltp = __v;
+  }
+
+  //////
+  inline std::vector< double > get_sampled_ltd() const {
+    return V_.sampled_ltd;
+  }
+
+  inline void set_sampled_ltd(const std::vector< double > __v) {
+    V_.sampled_ltd = __v;
+  }
+
+  //////
+  inline std::vector< double > get_sampled_weights() const {
+    return V_.sampled_weights;
+  }
+
+  inline void set_sampled_weights(const std::vector< double > __v) {
+    V_.sampled_weights = __v;
+  }
+
+  //////
+  inline std::vector< double > get_sampled_hebbian() const {
+    return V_.sampled_hebbian;
+  }
+
+  inline void set_sampled_hebbian(const std::vector< double > __v) {
+    V_.sampled_hebbian = __v;
+  }
+
+  struct Parameters_
+  {
+
+    //!  filtering time constant for firing rate estimation
+    double tau_w;
+
+    double tau_ltp;
+
+    double tau_ltd;
+
+    double Tp_max;
+
+    double Td_max;
+
+    //!  Activation rate LTP trace
+    double eta_ltp;
+
+    //!  Activation rate LTD trace
+    double eta_ltd;
+
+    //!  Duration of refractory period for traces following neuromodulator presentation
+    double T_tr;
+
+    //!  duration of reward window
+    double T_reward;
+
+    //!  !! this is not mentioned in the paper!
+    double the_delay;
+
+    double learn_rate;
+
+    double __gsl_error_tol;
+
+    std::vector< double > reward_times;
+
+    double sampling_interval;  // interval at which to sample traces / weights to log file
+
+    /** Initialize parameters to their default values. */
+    Parameters_() {};
+  };
+
+  struct ODEStruct1_ {
+    ODEStruct1_();
+    ODEStruct1_(const ODEStruct1_ &);
+
+    /** GSL ODE stuff */
+    gsl_odeiv_step* __s;    //!< stepping function
+    gsl_odeiv_control* __c; //!< adaptive stepsize control function
+    gsl_odeiv_evolve* __e;  //!< evolution function
+//    std::vector < gsl_odeiv_evolve* > __e = std::vector< gsl_odeiv_evolve* >(256);  //!< evolution function
+    gsl_odeiv_system __sys; //!< struct describing system
+
+    // IntergrationStep_ should be reset with the neuron on ResetNetwork,
+    // but remain unchanged during calibration. Since it is initialized with
+    // step_, and the resolution cannot change after nodes have been created,
+    // it is safe to place both here.
+    double __step;             //!< step size in ms
+    double __integration_step; //!< current integration time step, updated by GSL
+  };
+
+  struct Variables_ {
+    double __h;
+
+    unsigned __t_reward_idx;
+
+    double __P__rate_pre__rate_pre;
+
+    double __P__rate_post__rate_post;
+
+    std::vector< double > sampled_times;
+    std::vector< double > sampled_ltp;
+    std::vector< double > sampled_ltd;
+    std::vector< double > sampled_weights;
+    std::vector< double > sampled_hebbian;
+  };
+
+  void init_buffers_(ODEStruct1_ &);
+  void init_buffers_();
+
+  /**
+  * Internal variables of the synapse.
+  *
+  *
+  *
+  * These variables must be initialized by @c calibrate, which is called before
+  * the first call to @c update() upon each call to @c Simulate.
+  * @node Variables_ needs neither constructor, copy constructor or assignment operator,
+  *       since it is initialized by @c calibrate(). If Variables_ has members that
+  *       cannot destroy themselves, Variables_ will need a destructor.
+   */
+  Parameters_ P_; //!< Free parameters.
+  State_ S_;  //!< Dynamic state.
+  Variables_ V_;  //!< Internal Variables
+//  ODEStruct1_ B_;  //!< Buffers / ODE integration variable
+  std::vector< ODEStruct1_ > B_vec_ = std::vector< ODEStruct1_ >(256);  //!< Buffers / ODE integration variable
+  SolverParams_ SP_;
+};
+
+////////////////////////////////////////////////
+
+/**
+* constructor
+**/
+template < typename targetidentifierT >
+ShouvalConnection< targetidentifierT >::ShouvalConnection()
+  :ConnectionBase()
+{
+  P_.tau_w = 40.; // as ms
+  P_.tau_ltp = 2000; // as ms
+  P_.tau_ltd = 1000; // as ms
+  P_.Tp_max = 0.95; // as real
+  P_.Td_max = 1.0; // as real
+  P_.eta_ltp = 1.;
+  P_.eta_ltd = 0.55;
+  P_.T_tr = 25; // as ms
+  P_.T_reward = 25; // as ms
+  P_.the_delay = 1; // as ms
+  P_.learn_rate = 0.0045;
+  P_.__gsl_error_tol = 1e-3;
+  P_.sampling_interval = 0.;
+
+  V_.__h = nest::Time::get_resolution().get_ms();
+  V_.__t_reward_idx = 0;
+
+  init_internals_block_symbols();
+//  init_buffers_();
+
+  SP_.params[SolverParams_::tau_w] = P_.tau_w;
+  SP_.params[SolverParams_::Tp_max_] = P_.Tp_max;
+  SP_.params[SolverParams_::Td_max_] = P_.Td_max;
+  SP_.params[SolverParams_::tau_ltp_] = P_.tau_ltp;
+  SP_.params[SolverParams_::tau_ltd_] = P_.tau_ltd;
+  SP_.params[SolverParams_::eta_ltp_] = P_.eta_ltp;
+  SP_.params[SolverParams_::eta_ltd_] = P_.eta_ltd;
+  SP_.params[SolverParams_::reward_on] = 0;
+  SP_.params[SolverParams_::refractory_on] = 0;
+  SP_.params[SolverParams_::learn_rate] = P_.learn_rate;
+
+  S_.y_[State_::rate_pre] = 0.0; // as real
+  S_.y_[State_::rate_post] = 0.0; // as real
+  S_.y_[State_::trace_ltd] = 0.0; // as real
+  S_.y_[State_::trace_ltp] = 0.0; // as real
+  S_.y_[State_::w] = 0.0; // as real
+
+  t_lastspike_ = 0.;
+}
+
+template < typename targetidentifierT >
+ShouvalConnection< targetidentifierT >::ShouvalConnection( const ShouvalConnection< targetidentifierT >& rhs ):
+  ConnectionBase(rhs), SP_(rhs.SP_),
+  B_vec_(rhs.B_vec_)
+//  B_(rhs.B_)
+{
+  P_.tau_w = rhs.P_.tau_w;
+  P_.tau_ltp = rhs.P_.tau_ltp;
+  P_.tau_ltd = rhs.P_.tau_ltd;
+  P_.Tp_max = rhs.P_.Tp_max;
+  P_.Td_max = rhs.P_.Td_max;
+  P_.eta_ltp = rhs.P_.eta_ltp;
+  P_.eta_ltd = rhs.P_.eta_ltd;
+  P_.T_tr = rhs.P_.T_tr;
+  P_.T_reward = rhs.P_.T_reward;
+  P_.the_delay = rhs.P_.the_delay;
+  P_.learn_rate = rhs.P_.learn_rate;
+  P_.reward_times = rhs.P_.reward_times;
+  P_.sampling_interval = rhs.P_.sampling_interval;
+
+  V_.__t_reward_idx = rhs.V_.__t_reward_idx;
+  V_.sampled_times = rhs.V_.sampled_times;
+  V_.sampled_ltp = rhs.V_.sampled_ltp;
+  V_.sampled_ltd = rhs.V_.sampled_ltd;
+  V_.sampled_weights = rhs.V_.sampled_weights;
+  V_.sampled_hebbian = rhs.V_.sampled_hebbian;
+
+  // state variables in ODE or kernel
+  S_.y_[State_::w] = rhs.S_.y_[State_::w]; // as real
+  S_.y_[State_::rate_pre] = rhs.S_.y_[State_::rate_pre]; // as real
+  S_.y_[State_::rate_post] = rhs.S_.y_[State_::rate_post]; // as real
+  S_.y_[State_::trace_ltp] = rhs.S_.y_[State_::trace_ltp]; // as real
+  S_.y_[State_::trace_ltd] = rhs.S_.y_[State_::trace_ltd]; // as real
+
+  t_lastspike_  = rhs.t_lastspike_;
+}
+
+template<typename targetidentifierT>
+void
+ShouvalConnection<targetidentifierT>::get_status(DictionaryDatum &__d) const
+{
+  ConnectionBase::get_status(__d);
+  def<double>( __d, names::weight, weight_ );
+  def<long>(__d, names::size_of, sizeof(*this));
+
+  // parameters
+//  def<double>(__d, names::tau_w, P_.tau_w );
+  def<double>(__d, "tau_w", get_tau_w());
+  def<double>(__d, "tau_ltp_", get_tau_ltp());
+  def<double>(__d, "tau_ltd_", get_tau_ltd());
+  def<double>(__d, "Tp_max_", get_Tp_max());
+  def<double>(__d, "Td_max_", get_Td_max());
+  def<double>(__d, "eta_ltp_", get_eta_ltp());
+  def<double>(__d, "eta_ltd_", get_eta_ltd());
+  def<double>(__d, "T_tr_", get_T_tr());
+  def<double>(__d, "T_reward_", get_T_reward());
+  def<double>(__d, names::delay, P_.the_delay);
+  def<double>(__d, "learn_rate", get_learn_rate());
+  def<std::vector<double>>(__d, "reward_times", get_reward_times());
+  def<std::vector<double>>(__d, "sampled_times", get_sampled_times());
+  def<std::vector<double>>(__d, "sampled_ltp", get_sampled_ltp());
+  def<std::vector<double>>(__d, "sampled_ltd", get_sampled_ltd());
+  def<std::vector<double>>(__d, "sampled_weights", get_sampled_weights());
+  def<std::vector<double>>(__d, "sampled_hebbian", get_sampled_hebbian());
+  def<double>(__d, "sampling_interval", get_sampling_interval());
+
+  // initial values for state variables not in ODE or kernel
+
+  // initial values for state variables in ODE or kernel
+  def<double>(__d, "w", get_w());
+  def<double>(__d, "trace_ltp", get_trace_ltp());
+  def<double>(__d, "trace_ltd", get_trace_ltd());
+  def<double>(__d, "rate_pre", get_rate_pre());
+  def<double>(__d, "rate_post", get_rate_post());
+}
+
+// TODO the error seems to be in this function
+template<typename targetidentifierT>
+void
+ShouvalConnection<targetidentifierT>::set_status(const DictionaryDatum &__d, ConnectorModel &cm)
+{
+//  ConnectionBase::set_status(__d, cm);
+
+  // parameters
+  updateValue<double>(__d, names::tau_w, P_.tau_w );
+  updateValue<double>(__d, names::tau_ltp, P_.tau_ltp);
+  updateValue<double>(__d, names::tau_ltd, P_.tau_ltd);
+  updateValue<double>(__d, names::Tp_max, P_.Tp_max);
+  updateValue<double>(__d, names::Td_max, P_.Td_max);
+  updateValue<double>(__d, names::eta_ltp, P_.eta_ltp);
+  updateValue<double>(__d, names::eta_ltd, P_.eta_ltd);
+  updateValue<double>(__d, names::T_tr, P_.T_tr);
+  updateValue<double>(__d, names::T_reward, P_.T_reward);
+  updateValue<double>(__d, names::the_delay, P_.the_delay);
+  updateValue<double>(__d, names::learn_rate, P_.learn_rate);
+  updateValue< std::vector< double > >(__d, names::reward_times, P_.reward_times);
+  updateValue<double>(__d, names::sampling_interval, P_.sampling_interval);
+
+  updateValue< std::vector< double > >(__d, names::sampled_times, V_.sampled_times);
+  updateValue< std::vector< double > >(__d, names::sampled_ltp, V_.sampled_ltp);
+  updateValue< std::vector< double > >(__d, names::sampled_ltd, V_.sampled_ltd);
+  updateValue< std::vector< double > >(__d, names::sampled_weights, V_.sampled_weights);
+  updateValue< std::vector< double > >(__d, names::sampled_hebbian, V_.sampled_hebbian);
+
+  updateValue<double>(__d, names::w, S_.y_[State_::w]);
+  updateValue<double>(__d, names::trace_ltp, S_.y_[State_::trace_ltp]);
+  updateValue<double>(__d, names::trace_ltd, S_.y_[State_::trace_ltd]);
+  updateValue<double>(__d, names::rate_pre, S_.y_[State_::rate_pre]);
+  updateValue<double>(__d, names::rate_post, S_.y_[State_::rate_post]);
+
+  ///////////////////////////
+  // We now know that (ptmp, stmp) are consistent. We do not
+  // write them back to (P_, S_) before we are also sure that
+  // the properties to be set in the parent class are internally
+  // consistent.
+  ConnectionBase::set_status(__d, cm);
+
+  SP_.params[SolverParams_::tau_w] = P_.tau_w;
+  SP_.params[SolverParams_::tau_ltp_] = P_.tau_ltp;
+  SP_.params[SolverParams_::tau_ltd_] = P_.tau_ltd;
+  SP_.params[SolverParams_::Tp_max_] = P_.Tp_max;
+  SP_.params[SolverParams_::Td_max_] = P_.Td_max;
+  SP_.params[SolverParams_::learn_rate] = P_.learn_rate;
+
+}
+
+template<typename targetidentifierT>
+ShouvalConnection<targetidentifierT>::ODEStruct1_::ODEStruct1_():
+  __s( 0 ), __c( 0 ), __e( 0 )
+{
+}
+
+template<typename targetidentifierT>
+ShouvalConnection<targetidentifierT>::ODEStruct1_::ODEStruct1_(const ODEStruct1_ &ode)
+{
+  __s = ode.__s;
+  __c = ode.__c;
+  __e = ode.__e;
+  __sys = ode.__sys;
+  __step = ode.__step;
+  __integration_step = ode.__integration_step;
+}
+
+template < typename targetidentifierT >
+void ShouvalConnection< targetidentifierT >::init_buffers_(ShouvalConnection::ODEStruct1_ &B_)
+{
+  std::cout << "Initializing buffer B_ @ " << &B_ << " ...\n";
+  if ( B_.__s == 0 )
+  {
+    std::cout<<"foo\n";
+    B_.__s = gsl_odeiv_step_alloc( gsl_odeiv_step_rkf45, State_::STATE_VEC_SIZE );
+  }
+  else
+  {
+    std::cout<<"bar\n";
+    gsl_odeiv_step_reset( B_.__s );
+  }
+
+  if ( B_.__c == 0 )
+  {
+    std::cout<<"fooX\n";
+    B_.__c = gsl_odeiv_control_y_new( P_.__gsl_error_tol, 0.0 );
+  }
+  else
+  {
+    std::cout<<"barX\n";
+    gsl_odeiv_control_init( B_.__c, P_.__gsl_error_tol, 0.0, 1.0, 0.0 );
+  }
+
+  if ( B_.__e == 0 )
+  {
+    std::cout<<"fooY\n";
+    B_.__e = gsl_odeiv_evolve_alloc( State_::STATE_VEC_SIZE );
+  }
+  else
+  {
+    std::cout<<"barY\n";
+    gsl_odeiv_evolve_reset( B_.__e );
+  }
+
+  assert(B_.__c);
+  assert(B_.__e);
+  assert(B_.__s);
+  assert(&B_.__sys);
+
+  B_.__sys.function = ShouvalConnectionDynamics;
+  B_.__sys.jacobian = NULL;
+  B_.__sys.dimension = State_::STATE_VEC_SIZE;
+//        B_.__sys.params = NULL; //reinterpret_cast< void* >( this );
+  B_.__sys.params = reinterpret_cast< void* >( &SP_ );
+
+  B_.__step = nest::Time::get_resolution().get_ms();
+  B_.__integration_step = nest::Time::get_resolution().get_ms();
+}
+
+//template < typename targetidentifierT >
+//void ShouvalConnection< targetidentifierT >::init_buffers_(ShouvalConnection::ODEStruct1_ *B_)
+//{
+//  if ( B_->__s == 0 )
+//  {
+//    B_->__s = gsl_odeiv_step_alloc( gsl_odeiv_step_rkf45, State_::STATE_VEC_SIZE );
+//  }
+//  else
+//  {
+//    gsl_odeiv_step_reset( B_->__s );
+//  }
+//
+//  if ( B_->__c == 0 )
+//  {
+//    B_->__c = gsl_odeiv_control_y_new( P_.__gsl_error_tol, 0.0 );
+//  }
+//  else
+//  {
+//    gsl_odeiv_control_init( B_->__c, P_.__gsl_error_tol, 0.0, 1.0, 0.0 );
+//  }
+//
+//  if ( B_->__e == 0 )
+//  {
+//    B_->__e = gsl_odeiv_evolve_alloc( State_::STATE_VEC_SIZE );
+//  }
+//  else
+//  {
+//    gsl_odeiv_evolve_reset( B_->__e );
+//  }
+//
+//  assert(B_->__c);
+//  assert(B_->__e);
+//  assert(B_->__s);
+//  assert(&B_->__sys);
+//
+//  B_->__sys.function = ShouvalConnectionDynamics;
+//  B_->__sys.jacobian = NULL;
+//  B_->__sys.dimension = State_::STATE_VEC_SIZE;
+////        B_->__sys.params = NULL; //reinterpret_cast< void* >( this );
+//  B_->__sys.params = reinterpret_cast< void* >( &SP_ );
+//
+//  B_->__step = nest::Time::get_resolution().get_ms();
+//  B_->__integration_step = nest::Time::get_resolution().get_ms();
+//}
+
+//template < typename targetidentifierT >
+//void ShouvalConnection< targetidentifierT >::init_buffers_()
+//{
+//  if ( B_.__s == 0 )
+//  {
+//    B_.__s = gsl_odeiv_step_alloc( gsl_odeiv_step_rkf45, State_::STATE_VEC_SIZE );
+//  }
+//  else
+//  {
+//    gsl_odeiv_step_reset( B_.__s );
+//  }
+//
+//  if ( B_.__c == 0 )
+//  {
+//    B_.__c = gsl_odeiv_control_y_new( P_.__gsl_error_tol, 0.0 );
+//  }
+//  else
+//  {
+//    gsl_odeiv_control_init( B_.__c, P_.__gsl_error_tol, 0.0, 1.0, 0.0 );
+//  }
+//
+//  if ( B_.__e == 0 )
+//  {
+//    B_.__e = gsl_odeiv_evolve_alloc( State_::STATE_VEC_SIZE );
+//  }
+//  else
+//  {
+//    gsl_odeiv_evolve_reset( B_.__e );
+//  }
+//
+//  assert(B_.__c);
+//  assert(B_.__e);
+//  assert(B_.__s);
+//  assert(&B_.__sys);
+//
+//  B_.__sys.function = ShouvalConnectionDynamics;
+//  B_.__sys.jacobian = NULL;
+//  B_.__sys.dimension = State_::STATE_VEC_SIZE;
+////        B_.__sys.params = NULL; //reinterpret_cast< void* >( this );
+//  B_.__sys.params = reinterpret_cast< void* >( &SP_ );
+//
+//  B_.__step = nest::Time::get_resolution().get_ms();
+//  B_.__integration_step = nest::Time::get_resolution().get_ms();
+//}
+
+
+template < typename targetidentifierT >
+void ShouvalConnection< targetidentifierT >::init_internals_block_symbols()
+{
+  V_.__P__rate_pre__rate_pre = std::exp((-V_.__h) / P_.tau_w);
+  V_.__P__rate_post__rate_post = std::exp((-V_.__h) / P_.tau_w);
+}
+
+template<typename targetidentifierT>
+inline void
+ShouvalConnection<targetidentifierT>::send(Event &e, thread tid, const CommonSynapseProperties &cp) {
+  const double t_spike = e.get_stamp().get_ms();
+  Node *__target = get_target(tid);
+  const double dendritic_delay = get_delay();
+
+  std::ostringstream msg;
+  msg << "\n=====================================\nProcessing spike @t: " << t_spike
+      << "; synapse address @: " << this << "\n";
+
+  if (t_lastspike_ < 0.)
+  {
+    t_lastspike_ = 0.;  // this is the first preynaptic spike to be processed
+  }
+
+  // ///////////////////////////////////////////////////////////////////////
+  // get spike history in relevant range (t1, t2] from post-synaptic neuron
+  std::deque<histentry>::iterator start;
+  std::deque<histentry>::iterator finish;
+
+  __target->get_history(t_lastspike_ - dendritic_delay, t_spike - dendritic_delay, &start, &finish);
+
+  msg << "######### post-synaptic processing ##########\n";
+
+  /////////////////////////////////////////////////////////////////////////
+  // facilitation due to post-synaptic spikes since last pre-synaptic spike
+  /////////////////////////////////////////////////////////////////////////
+  while (start != finish) {
+    msg << "--------------------------------------------------\n"
+        << "start (" << start->t_ << ") != finish (" << finish->t_ << ")\n";
+    /**
+     * update synapse internal state from `t_lastspike_` to `start->t_`
+    **/
+    const double old___h = V_.__h;
+    const double t_curspike_ = start->t_;
+
+    V_.__h = (start->t_ + dendritic_delay) - t_lastspike_;
+    // TODO is this necessary?
+    // if first post-synaptic spike, we need to correct 1 step
+//                if (t_lastspike_ == 0.)
+    {
+      V_.__h -= 1.;
+    }
+    init_internals_block_symbols();
+
+    double rate_pre__tmp = V_.__P__rate_pre__rate_pre * S_.y_[State_::rate_pre];
+    double rate_post__tmp = V_.__P__rate_post__rate_post * S_.y_[State_::rate_post];
+
+    LOG(M_DEBUG, "ShouvalConnection::send()", msg.str());
+    msg.str("");
+    // evolve system between t_last_spike_ and t_curspike_
+    evolve_dynamics(t_curspike_, tid);
+
+    /* replace analytically solvable variables with precisely integrated values  */
+    S_.y_[State_::rate_pre] = rate_pre__tmp;
+    S_.y_[State_::rate_post] = rate_post__tmp;
+
+    V_.__h = old___h;
+    init_internals_block_symbols();  // XXX: can be skipped?
+
+    /**
+     *  NESTML generated postReceive code block begins here!
+    **/
+    S_.y_[State_::rate_post] += 1.0;
+    /**
+     * internal state has now been fully updated to `start->t_ + dendritic_delay`
+    **/
+//                t_lastspike_ = start->t_ + dendritic_delay;
+    t_lastspike_ = start->t_;
+    msg << "internal state been fully updated to `start->t_ + dendritic_delay`"
+        << "\n\t t_last_spike_: " << t_lastspike_
+        << "\n";
+    ++start;
+  }
+  msg << "################ [END] #################\n";
+  msg << "----------------------------------------\n";
+  msg << "######### pre-synaptic processing after all post-syn have been processed ##########\n";
+
+  // ///////////////////////////////////////////////////////////////////////
+  /**
+   * update synapse internal state from `t_lastspike_` to `t_spike`
+  **/
+  const double old___h = V_.__h;
+  msg << "[foo] V_.__h: " << V_.__h << " with t_lastspike__: " << t_lastspike_ << "\n";
+
+  V_.__h = t_spike - t_lastspike_;
+  msg << "[bar] V_.__h (pre) (t_spike - t_lastspike__): " << V_.__h << "\n";
+
+  if (V_.__h > 1E-9) {
+    msg << "EXTRA !! V_.__h > 1E-9, means we have to evolve " << V_.__h
+        << " ms/steps till current tp.\n";
+
+    init_internals_block_symbols();
+    double rate_pre__tmp = V_.__P__rate_pre__rate_pre * S_.y_[State_::rate_pre];
+    double rate_post__tmp = V_.__P__rate_post__rate_post * S_.y_[State_::rate_post];
+
+    LOG(M_DEBUG, "ShouvalConnection::send()", msg.str());
+//    std::cout << "ShouvalConnection::send()" << msg.str() << std::endl;
+    msg.str("");
+
+    evolve_dynamics(t_spike, tid);
+
+    /* replace analytically solvable variables with precisely integrated values  */
+    S_.y_[State_::rate_pre] = rate_pre__tmp;
+    S_.y_[State_::rate_post] = rate_post__tmp;
+  }
+
+  V_.__h = old___h;
+//            init_internals_block_symbols();  // XXX: can be skipped?
+
+  /**
+   *  NESTML generated preReceive code block begins here!
+  **/
+  S_.y_[State_::rate_pre] += 1.0;
+  set_delay(P_.the_delay);
+  const long __delay_steps = nest::Time::delay_ms_to_steps(get_delay());
+  set_delay_steps(__delay_steps);
+  e.set_receiver(*__target);
+
+  e.set_weight(S_.y_[State_::w]);
+  // use accessor functions (inherited from Connection< >) to obtain delay in steps and rport
+  e.set_delay_steps( get_delay_steps() );
+  e.set_rport( get_rport() );
+  e();;
+
+  /**
+   *  synapse internal state has now been fully updated to `t_spike`
+  **/
+  msg << "Synapse internal state has now been fully updated to `t_spike` " << t_spike << "ms with"
+      << "\n\tS_.rate_pre (inc. +1): " << S_.y_[State_::rate_pre]
+      << "\n\tS_.rate_post: " << S_.y_[State_::rate_post]
+      << "\n";
+
+  t_lastspike_ = t_spike;
+  LOG(M_DEBUG, "ShouvalConnection::send()", msg.str());
+//  std::cout << "ShouvalConnection::send()" << msg.str() << std::endl;
+}
+
+} // namespace
+
+#endif /* #ifndef SHOUVAL_CONNECTION_H */

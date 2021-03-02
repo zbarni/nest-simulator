@@ -23,7 +23,7 @@
 --------------------------------
 
 This scripts simulates two neurons. One is driven with dc-input and
-connected to the other one with a depressing Tsodyks synapse. The membrane
+connected to the other one with a depressing tsodyks synapse. The membrane
 potential trace of the second neuron is recorded.
 
 This example reproduces Figure 1A of [1]_.
@@ -50,6 +50,7 @@ See Also
 
 import nest
 import nest.voltage_trace
+import pylab
 from numpy import exp
 
 ###############################################################################
@@ -112,9 +113,10 @@ volts = nest.Create("voltmeter")
 # are configured using ``SetStatus``, which expects a list of node handles and
 # a parameter dictionary or a list of parameter dictionaries.
 
-neurons.set(neuron_param)
-dc_gen.set(amplitude=I0, start=TIstart, stop=TIend)
-volts.set(label="voltmeter", interval=1.)
+nest.SetStatus(neurons, neuron_param)
+nest.SetStatus(dc_gen, {"amplitude": I0, "start": TIstart, "stop": TIend})
+nest.SetStatus(volts, {"label": "voltmeter", "withtime": True, "withgid": True,
+                       "interval": 1.})
 
 ###############################################################################
 # Sixth, the ``dc_generator`` is connected to the first neuron
@@ -125,8 +127,8 @@ volts.set(label="voltmeter", interval=1.)
 # direction for the ``voltmeter`` reflects the signal flow in the simulation
 # kernel, because it observes the neuron instead of receiving events from it.
 
-nest.Connect(dc_gen, neurons[0])
-nest.Connect(volts, neurons[1])
+nest.Connect(dc_gen, [neurons[0]])
+nest.Connect(volts, [neurons[1]])
 
 ###############################################################################
 # Seventh, the first neuron (`neurons[0]`) is connected to the second
@@ -136,7 +138,7 @@ nest.Connect(volts, neurons[1])
 # connection routine via the ``syn_spec`` parameter.
 
 nest.CopyModel("tsodyks_synapse", "syn", syn_param)
-nest.Connect(neurons[0], neurons[1], syn_spec="syn")
+nest.Connect([neurons[0]], [neurons[1]], syn_spec="syn")
 
 ###############################################################################
 # Finally, we simulate the configuration using the command ``Simulate``,
@@ -145,4 +147,3 @@ nest.Connect(neurons[0], neurons[1], syn_spec="syn")
 
 nest.Simulate(Tend)
 nest.voltage_trace.from_device(volts)
-nest.voltage_trace.show()

@@ -65,7 +65,10 @@ class StatusTestCase(unittest.TestCase):
 
         nest.ResetKernel()
 
-        for model in nest.Models():
+        # sli_neuron does not work under PyNEST
+        models = (m for m in nest.Models() if m != 'sli_neuron')
+
+        for model in models:
 
             model_status = nest.GetDefaults(model)
             self.assertIsInstance(model_status, dict)
@@ -86,7 +89,10 @@ class StatusTestCase(unittest.TestCase):
 
         nest.ResetKernel()
 
-        for m in nest.Models():
+        # sli_neuron does not work under PyNEST
+        models = (m for m in nest.Models() if m != 'sli_neuron')
+
+        for m in models:
             if 'V_m' in nest.GetDefaults(m):
                 v_m = nest.GetDefaults(m)['V_m']
 
@@ -103,7 +109,10 @@ class StatusTestCase(unittest.TestCase):
     def test_GetStatus(self):
         """GetStatus"""
 
-        for m in nest.Models():
+        # sli_neuron does not work under PyNEST
+        models = (m for m in nest.Models() if m != 'sli_neuron')
+
+        for m in models:
             if 'V_m' in nest.GetDefaults(m):
                 nest.ResetKernel()
 
@@ -131,7 +140,10 @@ class StatusTestCase(unittest.TestCase):
     def test_SetStatus(self):
         """SetStatus with dict"""
 
-        for m in nest.Models():
+        # sli_neuron does not work under PyNEST
+        models = (m for m in nest.Models() if m != 'sli_neuron')
+
+        for m in models:
             if 'V_m' in nest.GetDefaults(m):
                 nest.ResetKernel()
                 n = nest.Create(m)
@@ -141,7 +153,10 @@ class StatusTestCase(unittest.TestCase):
     def test_SetStatusList(self):
         """SetStatus with list"""
 
-        for m in nest.Models():
+        # sli_neuron does not work under PyNEST
+        models = (m for m in nest.Models() if m != 'sli_neuron')
+
+        for m in models:
             if 'V_m' in nest.GetDefaults(m):
                 nest.ResetKernel()
                 n = nest.Create(m)
@@ -151,7 +166,10 @@ class StatusTestCase(unittest.TestCase):
     def test_SetStatusParam(self):
         """SetStatus with parameter"""
 
-        for m in nest.Models():
+        # sli_neuron does not work under PyNEST
+        models = (m for m in nest.Models() if m != 'sli_neuron')
+
+        for m in models:
             if 'V_m' in nest.GetDefaults(m):
                 nest.ResetKernel()
                 n = nest.Create(m)
@@ -161,8 +179,14 @@ class StatusTestCase(unittest.TestCase):
     def test_SetStatusVth_E_L(self):
         """SetStatus of reversal and threshold potential """
 
-        excluded = ['a2eif_cond_exp_HW', 'mat2_psc_exp', 'amat2_psc_exp']
-        models = [m for m in nest.Models() if m not in excluded]
+        # sli_neuron does not work under PyNEST
+        models = (
+            m for m in nest.Models()
+            if m not in (
+                'sli_neuron', 'a2eif_cond_exp_HW',
+                'mat2_psc_exp', 'amat2_psc_exp'
+            )
+        )
 
         for m in models:
             if all(key in nest.GetDefaults(m) for key in ('V_th', 'E_L')):
@@ -189,7 +213,10 @@ class StatusTestCase(unittest.TestCase):
         """SetStatus of reversal and threshold potential
            check if error is raised if V_reset > V_th"""
 
-        for m in nest.Models():
+        # sli_neuron does not work under PyNEST
+        models = (m for m in nest.Models() if m != 'sli_neuron')
+
+        for m in models:
             if all(key in nest.GetDefaults(m) for key in ('V_th', 'V_reset')):
                 nest.ResetKernel()
 

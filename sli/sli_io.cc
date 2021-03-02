@@ -70,6 +70,9 @@ using namespace std;
 // due to the lack of sstream support in libstdc++-2.7.2.x
 // This will change in the future.
 
+extern int SLIsignalflag;
+
+
 void
 MathLinkPutStringFunction::execute( SLIInterpreter* i ) const
 {
@@ -575,6 +578,10 @@ PrintFunction::execute( SLIInterpreter* i ) const
   if ( ( *ostreamdatum )->good() )
   {
     i->OStack.top()->print( **ostreamdatum );
+    if ( SLIsignalflag != 0 )
+    {
+      ( *ostreamdatum )->clear();
+    }
 
     i->OStack.pop();
     i->EStack.pop();
@@ -620,7 +627,10 @@ PrettyprintFunction::execute( SLIInterpreter* i ) const
   if ( ( *ostreamdatum )->good() )
   {
     i->OStack.top()->pprint( **ostreamdatum );
-
+    if ( SLIsignalflag != 0 )
+    {
+      ( *ostreamdatum )->clear();
+    }
     i->OStack.pop();
     i->EStack.pop();
   }
@@ -1333,7 +1343,16 @@ GetcFunction::execute( SLIInterpreter* i ) const
   }
   else
   {
-    i->raiseerror( i->BadIOError );
+    if ( SLIsignalflag != 0 )
+    {
+      // else a SignalError will be raised by the interpreter cycle
+      ( *istreamdatum )->clear();
+      i->EStack.pop();
+    }
+    else
+    {
+      i->raiseerror( i->BadIOError );
+    }
   }
 }
 
@@ -1375,7 +1394,16 @@ GetsFunction::execute( SLIInterpreter* i ) const
   }
   else
   {
-    i->raiseerror( i->BadIOError );
+    if ( SLIsignalflag == 0 )
+    {
+      i->raiseerror( i->BadIOError );
+    }
+    else
+    {
+      // else a SignalError will be raised by the interpreter cycle
+      ( *istreamdatum )->clear();
+      i->EStack.pop();
+    }
   }
 }
 
@@ -1418,7 +1446,16 @@ GetlineFunction::execute( SLIInterpreter* i ) const
     getline( **istreamdatum, s );
     if ( not( *istreamdatum )->good() )
     {
-      i->OStack.push( false );
+      if ( SLIsignalflag == 0 )
+      {
+        i->OStack.push( false );
+      }
+      else
+      {
+        // else a SignalError will be raised by the interpreter cycle
+        ( *istreamdatum )->clear();
+        return;
+      }
     }
     else
     {
@@ -1794,8 +1831,16 @@ ReadDoubleFunction::execute( SLIInterpreter* i ) const
     }
     else
     {
-      i->OStack.push( false );
-      i->EStack.pop();
+      if ( SLIsignalflag == 0 )
+      {
+        i->OStack.push( false );
+        i->EStack.pop();
+      }
+      else
+      {
+        // else a SignalError will be raised by the interpreter cycle
+        ( *istreamdatum )->clear();
+      }
     }
   }
   else
@@ -1836,8 +1881,16 @@ ReadIntFunction::execute( SLIInterpreter* i ) const
     }
     else
     {
-      i->OStack.push( false );
-      i->EStack.pop();
+      if ( SLIsignalflag == 0 )
+      {
+        i->OStack.push( false );
+        i->EStack.pop();
+      }
+      else
+      {
+        // else a SignalError will be raised by the interpreter cycle
+        ( *istreamdatum )->clear();
+      }
     }
   }
   else
@@ -1886,8 +1939,16 @@ ReadWordFunction::execute( SLIInterpreter* i ) const
   }
   else
   {
-    i->OStack.push( false );
-    i->EStack.pop();
+    if ( SLIsignalflag == 0 )
+    {
+      i->OStack.push( false );
+      i->EStack.pop();
+    }
+    else
+    {
+      // else a SignalError will be raised by the interpreter cycle
+      ( *istreamdatum )->clear();
+    }
   }
 }
 

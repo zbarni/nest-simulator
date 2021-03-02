@@ -33,31 +33,31 @@ namespace nest
 {
 
 /**
- * Stores the node ID of a presynaptic neuron
+ * Stores the global id of a presynaptic neuron
  * and the number of local targets, along with a flag, whether this
  * entry has been processed yet. Used in SourceTable.
  */
 class Source
 {
 private:
-  uint64_t node_id_ : NUM_BITS_NODE_ID; //!< node ID of source
-  bool processed_ : 1;                  //!< whether this target has already been moved
-                                        //!< to the MPI buffer
+  uint64_t gid_ : NUM_BITS_GID; //!< gid of source
+  bool processed_ : 1;          //!< whether this target has already been moved
+                                //!< to the MPI buffer
   bool primary_ : 1;
 
 public:
   Source();
-  explicit Source( const uint64_t node_id, const bool primary );
+  explicit Source( const uint64_t gid, const bool primary );
 
   /**
-   * Sets node_id_ to the specified value.
+   * Sets gid_ to the specified value.
    */
-  void set_node_id( const uint64_t node_id );
+  void set_gid( const uint64_t gid );
 
   /**
-   * Returns this Source's node ID.
+   * Returns this Source's GID.
    */
-  uint64_t get_node_id() const;
+  uint64_t get_gid() const;
 
   void set_processed( const bool processed );
   bool is_processed() const;
@@ -88,31 +88,31 @@ public:
 };
 
 inline Source::Source()
-  : node_id_( 0 )
+  : gid_( 0 )
   , processed_( false )
   , primary_( true )
 {
 }
 
-inline Source::Source( const uint64_t node_id, const bool is_primary )
-  : node_id_( node_id )
+inline Source::Source( const uint64_t gid, const bool is_primary )
+  : gid_( gid )
   , processed_( false )
   , primary_( is_primary )
 {
-  assert( node_id <= MAX_NODE_ID );
+  assert( gid <= MAX_GID );
 }
 
 inline void
-Source::set_node_id( const uint64_t node_id )
+Source::set_gid( const uint64_t gid )
 {
-  assert( node_id <= MAX_NODE_ID );
-  node_id_ = node_id;
+  assert( gid <= MAX_GID );
+  gid_ = gid;
 }
 
 inline uint64_t
-Source::get_node_id() const
+Source::get_gid() const
 {
-  return node_id_;
+  return gid_;
 }
 
 inline void
@@ -142,18 +142,18 @@ Source::is_primary() const
 inline void
 Source::disable()
 {
-  node_id_ = DISABLED_NODE_ID;
+  gid_ = DISABLED_GID;
 }
 
 inline bool
 Source::is_disabled() const
 {
-  return node_id_ == DISABLED_NODE_ID;
+  return gid_ == DISABLED_GID;
 }
 
 inline bool operator<( const Source& lhs, const Source& rhs )
 {
-  return ( lhs.node_id_ < rhs.node_id_ );
+  return ( lhs.gid_ < rhs.gid_ );
 }
 
 inline bool operator>( const Source& lhs, const Source& rhs )
@@ -163,7 +163,7 @@ inline bool operator>( const Source& lhs, const Source& rhs )
 
 inline bool operator==( const Source& lhs, const Source& rhs )
 {
-  return ( lhs.node_id_ == rhs.node_id_ );
+  return ( lhs.gid_ == rhs.gid_ );
 }
 
 } // namespace nest

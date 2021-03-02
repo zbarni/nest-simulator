@@ -1,0 +1,299 @@
+/*
+ *  shouval_archiving_node.cpp
+ *
+ *  This file is part of NEST.
+ *
+ *  Copyright (C) 2004 The NEST Initiative
+ *
+ *  NEST is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  NEST is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with NEST.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#include "shouval_archiving_node.h"
+
+// Includes from nestkernel:
+#include "kernel_manager.h"
+
+// Includes from sli:
+#include "dictutils.h"
+
+namespace nest
+{
+
+// member functions for Shouval_Archiving_Node
+
+nest::Shouval_Archiving_Node::Shouval_Archiving_Node()
+  : Archiving_Node()
+  , buffer_len( 0 )
+  , eta_learn( 0.001 )
+  , tau_ltp_( 2000.0 )
+  , tau_ltd_( 1000.0 )
+  , Tp_max_( 0.95 )
+  , Td_max_( 1.0 )
+  , eta_ltp_( 1.0 )
+  , eta_ltd_( 1.0 )
+{
+//  std::cout << "ETA_LTP foo: " << eta_ltp_ << std::endl << std::flush;
+//  std::cout << "wtf foo: " << wtf << std::endl << std::flush;
+
+}
+
+nest::Shouval_Archiving_Node::Shouval_Archiving_Node( const Shouval_Archiving_Node& n )
+  : Archiving_Node( n )
+  , buffer_len( n.buffer_len )
+  , eta_learn( n.eta_learn )
+  , tau_ltp_( n.tau_ltp_ )
+  , tau_ltd_( n.tau_ltd_ )
+  , Tp_max_( n.Tp_max_ )
+  , Td_max_( n.Td_max_ )
+  , eta_ltp_( n.eta_ltp_ )
+  , eta_ltd_( n.eta_ltd_ )
+{
+//  std::cout << "ETA_LTP bar: " << eta_ltp_ << std::endl << std::flush;
+//  std::cout << "wtf bar: " << wtf << std::endl << std::flush;
+}
+
+void
+nest::Shouval_Archiving_Node::init_shouval_buffers()
+{
+//  ltp_current = 0;
+buffer_len = kernel().connection_manager.get_max_delay() + 1;
+//  ltp_history_.resize( buffer_len, histentry_cl( 0.0, 0.0, 0 ) );
+//  std::cout << "ETA_LTP asd: " << eta_ltp_ << std::endl << std::flush;
+//  std::cout << "wtf asd: " << wtf << std::endl << std::flush;
+
+}
+
+void
+nest::Shouval_Archiving_Node::get_status( DictionaryDatum& d ) const
+{
+  Archiving_Node::get_status( d );
+
+  def<double>(d, names::tau_ltp, tau_ltp_);
+  def<double>(d, names::tau_ltd, tau_ltd_);
+  def<double>(d, names::Tp_max, Tp_max_);
+  def<double>(d, names::Td_max, Td_max_);
+  def<double>(d, names::eta_ltp, eta_ltp_);
+  def<double>(d, names::eta_ltd, eta_ltd_);
+  def<double>(d, names::learn_rate, eta_learn);
+  def<double>(d, names::T_tr, T_tr_);
+  def<double>(d, names::T_reward, T_reward_);
+  def<std::vector<double>>(d, names::reward_times, reward_times);
+}
+
+void
+nest::Shouval_Archiving_Node::set_status( const DictionaryDatum& d )
+{
+  Archiving_Node::set_status( d );
+
+  // We need to preserve values in case invalid values are set
+  updateValue<double>(d, names::tau_ltp, tau_ltp_);
+  updateValue<double>(d, names::tau_ltd, tau_ltd_);
+  updateValue<double>(d, names::Tp_max, Tp_max_);
+  updateValue<double>(d, names::Td_max, Td_max_);
+  updateValue<double>(d, names::eta_ltp, eta_ltp_);
+  updateValue<double>(d, names::eta_ltd, eta_ltd_);
+  updateValue<double>(d, names::learn_rate, eta_learn);
+  updateValue<double>(d, names::T_tr, T_tr_);
+  updateValue<double>(d, names::T_reward, T_reward_);
+  std::vector< double > tmp;
+  updateValue< std::vector< double > >(d, names::reward_times, tmp);
+  reward_times = tmp;
+//  std::cout << "### ### updated reward time with entry [] " << reward_times[0] << " @ " << &reward_times << std::endl;
+}
+
+double
+nest::Shouval_Archiving_Node::get_shouval_weight( double t, index sender_gid )
+{
+  std::vector< histentry_sh >::iterator runner;
+  if ( connMap.find( sender_gid ) == connMap.end() )
+  {
+    return 0.0;
+  }
+
+  connectionDataStruct *conn_ptr = &connMap[ sender_gid ];
+
+  if ( conn_ptr->weight_history_.empty() || t < 0.0 )
+  {
+    return 0.0;
+  }
+  else
+  {
+    runner = conn_ptr->weight_history_.begin();
+    while ( runner != conn_ptr->weight_history_.end() )
+    {
+      if ( fabs( t - runner->t_ ) < kernel().connection_manager.get_stdp_eps() )
+      {
+        return runner->ltp_trace_;
+      }
+      ( runner->access_counter_ )++;
+      ++runner;
+    }
+  }
+
+  return 0.0;
+}
+
+/**
+ * IMPORTANT!!!!
+ * This function returns the LTP-LTD difference, will be renamed later
+ * @param t
+ * @param sender_gid
+ * @return
+ */
+//double
+//nest::Shouval_Archiving_Node::get_LTD_value( double t, index sender_gid )
+//{
+//  std::vector< histentry_sh >::iterator runner;
+//  if ( connMap.find( sender_gid ) == connMap.end() )
+//  {
+//    return 0.0;
+//  }
+//
+//  connectionDataStruct *conn_ptr = &connMap[ sender_gid ];
+//
+//  if ( conn_ptr->weight_history_.empty() || t < 0.0 )
+//  {
+//    return 0.0;
+//  }
+//  else
+//  {
+//    runner = conn_ptr->weight_history_.begin();
+//    while ( runner != conn_ptr->weight_history_.end() )
+//    {
+//      if ( fabs( t - runner->t_ ) < kernel().connection_manager.get_stdp_eps() )
+//      {
+//        return runner->trace_val_;
+//      }
+//      ( runner->access_counter_ )++;
+//      ++runner;
+//    }
+//  }
+//
+//  return 0.0;
+//}
+
+double
+nest::Shouval_Archiving_Node::shouval_update_weight( double t_start, double t_stop, double weight, index sender_gid )
+{
+  std::vector< histentry_sh >::iterator runner;
+  if ( connMap.find( sender_gid ) == connMap.end() )
+  {
+    return 0.0;
+  }
+
+  connectionDataStruct *conn_ptr = &connMap[ sender_gid ];
+
+  while( conn_ptr->hist_buffer_pos )
+  double t_rew;
+}
+
+/**
+ *
+ * @param t_sp
+ * @param source_gid
+ * @param rate_pre
+ * @param rate_post
+ * @param msg
+ */
+void
+nest::Shouval_Archiving_Node::write_shouval_history( Time const& t_sp, index source_gid,
+                                                     double rate_pre, double rate_post, std::ostringstream &msg )
+{
+  const double t_ms = t_sp.get_ms();
+  const double dt = nest::Time::get_resolution().get_ms();
+
+//  std::ostringstream msg;
+  connectionDataStruct *conn_ptr;
+
+  //! resize / initalize array for gid_pre when encountered for the first time
+  if ( connMap.find( source_gid ) == connMap.end() )
+  {
+    conn_ptr = new connectionDataStruct();
+
+    conn_ptr->ltp_ltd_history_.resize( buffer_len, histentry_sh( 0.0, 0.0, 0.0, 0 ) );
+//    conn_ptr->ltd_history_.resize( buffer_len, histentry_sh( 0.0, 0.0, 0.0, 0 ) );
+//    conn_ptr->weight_history_.resize( buffer_len, histentry_sh( 0.0, 0.0, 0.0, 0 ) );
+    conn_ptr->ltp_trace = 0.0;
+    conn_ptr->ltd_trace = 0.0;
+    conn_ptr->weight = 30.0;
+    conn_ptr->hist_buffer_pos = 0;  // starting position of ring index is 0
+    conn_ptr->learn_rate = eta_learn;
+
+    connMap[ source_gid ] = *conn_ptr;
+
+    msg << "Initializing trace arrays for GID (pre) " << source_gid << std::endl;
+  }
+  else
+  {
+    conn_ptr = &connMap[ source_gid ];
+  }
+
+  //! hebbian term
+  double h = rate_pre * rate_post;
+
+  //! update traces
+  double tmp_cur_ltp = conn_ptr->ltp_trace;
+  double tmp_cur_ltd = conn_ptr->ltd_trace;
+  double tmp_weight = conn_ptr->weight;
+
+  // 0 - normal, 1 - reward, 2 - refractory
+  int current_window = get_window_type( t_ms );
+
+  if ( current_window < 2 )
+  {
+    double del_trace_ltp = ( -tmp_cur_ltp + eta_ltp_ * h * ( Tp_max_ - tmp_cur_ltp ) ) / tau_ltp_ * dt;
+    double del_trace_ltd = ( -tmp_cur_ltd + eta_ltd_ * h * ( Td_max_ - tmp_cur_ltd ) ) / tau_ltd_ * dt;
+    conn_ptr->ltp_trace += del_trace_ltp;
+    conn_ptr->ltd_trace += del_trace_ltd;
+
+    // update weights if in reward window
+    if ( current_window == 1 )
+    {
+      double del_w = conn_ptr->learn_rate * ( conn_ptr->ltp_trace - conn_ptr->ltd_trace );
+      conn_ptr->weight += del_w;
+      msg << "\n\t ... updating weights ... \n";
+    }
+  }
+  else
+  {
+    conn_ptr->ltp_trace = 0.0;
+    conn_ptr->ltd_trace = 0.0;
+  }
+
+  msg << "Updating trace for GID (pre) " << source_gid
+      << "\n\t current trace value " << tmp_cur_ltp << " ->  " << conn_ptr->ltp_trace
+      << "\n\t current weight value " << tmp_weight << " ->  " << conn_ptr->weight
+      << "\n\t eta_ltp_ " << eta_ltp_ << " whaat "
+      << "\n\t window type " << current_window
+      << "\n\t tau_ltp_ " << tau_ltp_
+      << "\n\t Tp_max_ " << Tp_max_
+      << "\n\t rate pre " << rate_pre  << " and rate post " << rate_post
+      << "\n\t hebbian " << h
+      << std::endl << std::flush;
+
+  conn_ptr->ltp_ltd_history_[ conn_ptr->hist_buffer_pos ] = histentry_sh( t_ms, conn_ptr->ltp_trace, 0.0, 0 );
+
+//  conn_ptr->ltd_history_[ conn_ptr->hist_buffer_pos ] = histentry_sh( t_ms, conn_ptr->ltd_trace, 0.0, 0 );
+//  conn_ptr->weight_history_[ conn_ptr->hist_buffer_pos ] = histentry_sh( t_ms, conn_ptr->weight, 0.0, 0 );
+
+  // update current pointer
+//  conn_ptr->hist_buffer_pos = ( conn_ptr->hist_buffer_pos + 1 ) % buffer_len;
+
+  msg << "Updated trace for GID (pre) " << source_gid << " to " << conn_ptr->ltp_trace
+      << " (ltp) and " << conn_ptr->ltd_trace << " (ltd)" <<  std::endl;
+}
+
+
+} // of namespace nest

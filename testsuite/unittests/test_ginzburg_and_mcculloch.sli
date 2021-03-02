@@ -47,10 +47,10 @@ ResetKernel
 
 ginzburg mcculloch Connect
 
-GetKernelStatus /num_connections get 1 eq assert_or_die
+0 GetStatus /num_connections get 1 eq assert_or_die
 
 100. Simulate
 
-GetKernelStatus /local_spike_counter get 1 geq assert_or_die
+0 GetStatus /local_spike_counter get 1 geq assert_or_die
 
 endusing

@@ -58,6 +58,12 @@ public:
    */
   virtual void finalize();
 
+
+  // TODO: register subnet, proxynode and siblingcontainer in the
+  // constructor and provide three getters for them. See L130 and
+  // following in network.cpp. Also make sure that the ModelManager is
+  // initialized before the NodeManager is.
+
   /**
    * Resize the structures for the Connector objects if necessary.
    * This function should be called after number of threads, min_delay,
@@ -67,6 +73,7 @@ public:
    * request to all ConnectorModel objects.
    */
   void calibrate( const TimeConverter& );
+
 
   /**
    *
@@ -81,7 +88,17 @@ public:
   /**
    *
    */
-  Node* get_proxy_node( thread tid, index node_id );
+  Model* get_subnet_model();
+
+  /**
+   *
+   */
+  Model* get_siblingcontainer_model();
+
+  /**
+   *
+   */
+  Node* get_proxy_node( thread tid, index gid );
 
   /**
    *
@@ -205,11 +222,6 @@ public:
    * Checks, whether synapse type requires Clopath archiving
    */
   bool connector_requires_clopath_archiving( const synindex syn_id ) const;
-
-  /**
-   * Checks, whether synapse type requires Urbanczik archiving
-   */
-  bool connector_requires_urbanczik_archiving( const synindex syn_id ) const;
 
   void set_connector_defaults( synindex syn_id, const DictionaryDatum& d );
 
@@ -379,9 +391,9 @@ private:
    */
   DictionaryDatum synapsedict_; //!< Dictionary of all synapse models
 
+  Model* subnet_model_;
+  Model* siblingcontainer_model_;
   Model* proxynode_model_;
-
-  Node* create_proxynode_( thread t, int model_id );
 
   //! Placeholders for remote nodes, one per thread
   std::vector< std::vector< Node* > > proxy_nodes_;
@@ -401,6 +413,18 @@ ModelManager::get_model( index m ) const
   }
 
   return models_[ m ];
+}
+
+inline Model*
+ModelManager::get_subnet_model()
+{
+  return subnet_model_;
+}
+
+inline Model*
+ModelManager::get_siblingcontainer_model()
+{
+  return siblingcontainer_model_;
 }
 
 inline Node*

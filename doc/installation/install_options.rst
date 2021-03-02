@@ -3,7 +3,7 @@ Configuration Options
 
 NEST is installed with ``cmake`` (at least v2.8.12). In the simplest case, the commands::
 
-    cmake -DCMAKE_INSTALL_PREFIX:PATH=<nest_install_dir> </path/to/NEST/src>
+    cmake -DCMAKE_INSTALL_PREFIX:PATH=</install/path> </path/to/NEST/src>
     make
     make install
 
@@ -15,7 +15,7 @@ Choice of CMake Version
 
 We recommend to use ``cmake`` v3.4 or later, even though installing NEST with
 ``cmake`` v2.8.12 will in most cases work properly.
-For more detailed information please see below: ``Python Binding (PyNEST)``
+For more detailed information please see below: ``Python3 Binding (PyNEST)``
 
 Choice of compiler
 ------------------
@@ -75,7 +75,8 @@ Set default libraries::
                                                  ltdl, set install path. NEST uses the
                                                  ltdl for dynamic loading of external
                                                  user modules. [default=ON]
-    -Dwith-python=[OFF|ON]                       Build PyNEST. [default=ON]
+    -Dwith-python=[OFF|ON|2|3]                   Build PyNEST. To set a specific Python
+                                                 version, set 2 or 3. [default=ON]
     -Dcythonize-pynest=[OFF|ON]                  Use Cython to cythonize pynestkernel.pyx.
                                                  If OFF, PyNEST has to be build from
                                                  a pre-cythonized pynestkernel.pyx.
@@ -147,10 +148,14 @@ as an argument to ``cmake``.
 
 Please see also the file :doc:`../../pynest/README.md` in the documentation directory for details.
 
-Python Binding (PyNEST)
+Python3 Binding (PyNEST)
 --------------------------
 
-Note that since NEST 3.0, support for Python 2 has been dropped. Please use Python 3 instead.
+To force a Python3-binding in a mixed Python2/3 environment pass::
+
+    -Dwith-python=3
+
+as an argument to ``cmake``.
 
 ``cmake`` usually autodetects your Python installation.
 In some cases ``cmake`` might not be able to localize the Python interpreter
@@ -163,7 +168,7 @@ and its corresponding libraries correctly. To circumvent such a problem followin
   PYTHON_INCLUDE_DIR2 ... directories
 
  e.g.: Please note ``-Dwith-python=ON`` is the default::
-  cmake -DCMAKE_INSTALL_PREFIX=<nest_install_dir> \
+  cmake -DCMAKE_INSTALL_PREFIX=</install/path> \
         -DPYTHON_EXECUTABLE=/usr/bin/python3 \
         -DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.4m.so \
         -DPYTHON_INCLUDE_DIR=/usr/include/python3.4 \
@@ -181,7 +186,7 @@ way to install all required software is using Homebrew (from http://brew.sh)::
 
 will install all required prequisites. You can then configure NEST with ::
 
-  cmake -DCMAKE_INSTALL_PREFIX:PATH=<nest_install_dir> \
+  cmake -DCMAKE_INSTALL_PREFIX:PATH=</install/path> \
         -DCMAKE_C_COMPILER=gcc-6\
         -DCMAKE_CXX_COMPILER=g++-6 \
         </path/to/NEST/src>

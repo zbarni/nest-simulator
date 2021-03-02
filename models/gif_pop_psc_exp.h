@@ -38,29 +38,25 @@ namespace nest
 
 class Network;
 
-/* BeginUserDocs: neuron, integrate-and-fire, current-based
+/** @BeginDocumentation
+@ingroup Neurons
+@ingroup iaf
+@ingroup psc
 
-Short description
-+++++++++++++++++
+Name: gif_pop_psc_exp - Population of generalized integrate-and-fire neurons
+with exponential postsynaptic currents and adaptation
 
-Population of generalized integrate-and-fire neurons with exponential
-postsynaptic currents and adaptation
-
-
-Description
-+++++++++++
+Description:
 
 This model simulates a population of spike-response model neurons with
 multi-timescale adaptation and exponential postsynaptic currents, as
-described in Schwalger et al. (2017) [1]_.
+described in [1].
 
-The single neuron model is defined by the hazard function:
+The single neuron model is defined by the hazard function
 
-.. math::
+@f[ lambda_0 * exp[ ( V_m - E_sfa ) / Delta_V ] @f]
 
- \lambda_0 * \exp\left(( V_m - E_{sfa} ) / \Delta_V\right)
-
-After each spike, the membrane potential V_m is reset to V_reset. Spike
+After each spike the membrane potential V_m is reset to V_reset. Spike
 frequency
 adaptation is implemented by a set of exponentially decaying traces, the
 sum of which is E_sfa. Upon a spike, all adaptation traces are incremented
@@ -80,7 +76,7 @@ communication effort is reduced in simulations.
 
 This model uses a new algorithm to directly simulate the population activity
 (sum of all spikes) of the population of neurons, without explicitly
-representing each single neuron. The computational cost is largely
+representing each single neuron (see [1]). The computational cost is largely
 independent of the number N of neurons represented. The algorithm used
 here is fundamentally different from and likely much faster than the one
 used in the previously added population model pp_pop_psc_delta.
@@ -90,12 +86,11 @@ neuron in each population. An approximation of random connectivity can be
 implemented by connecting populations through a spike_dilutor.
 
 
-Parameters
-++++++++++
+Parameters:
 
 The following parameters can be set in the status dictionary.
 
-
+\verbatim embed:rst
 =========== ============= =====================================================
  V_reset    mV            Membrane potential is reset to this value after
                           a spike
@@ -114,7 +109,7 @@ The following parameters can be set in the status dictionary.
  tau_syn_in ms            Time constant for inhibitory synaptic currents
  tau_sfa    list of ms    vector Adaptation time constants
  q_sfa      list of ms    Adaptation kernel amplitudes
- BinoRand   boolean       If True, binomial random numbers are used, otherwise
+ BinoRand   boolean        If True, binomial random numbers are used, otherwise
                           we use Poisson distributed spike counts
 =========== ============= =====================================================
 
@@ -123,37 +118,28 @@ The following parameters can be set in the status dictionary.
 **Parameter translation to gif_psc_exp**
 -----------------------------------------------------------
 gif_pop_psc_exp  gif_psc_exp  relation
-tau_m            g_L          tau_m = C_m / g_L
+tau_m            g_L          \f$ tau_m = C_m / g_L \f$
 N                ---          use N gif_psc_exp
 =============== ============  =============================
+\endverbatim
 
+References:
 
-References
-++++++++++
-
+\verbatim embed:rst
 .. [1] Schwalger T, Deger M, Gerstner W (2017). Towards a theory of cortical
        columns: From spiking neurons to interacting neural populations of
        finite size. PLoS Computational Biology.
        https://doi.org/10.1371/journal.pcbi.1005507
+\endverbatim
 
+Sends: SpikeEvent
 
-Sends
-+++++
+Receives: SpikeEvent, CurrentEvent, DataLoggingRequest
 
-SpikeEvent
+Authors: Nov 2016, Moritz Deger, Tilo Schwalger, Hesam Setareh
 
-Receives
-++++++++
-
-SpikeEvent, CurrentEvent, DataLoggingRequest
-
-See also
-++++++++
-
-gif_psc_exp, pp_pop_psc_delta, spike_dilutor
-
-EndUserDocs */
-
+SeeAlso: gif_psc_exp, pp_pop_psc_delta, spike_dilutor
+*/
 class gif_pop_psc_exp : public Node
 {
 
@@ -206,6 +192,7 @@ private:
    */
   struct Parameters_
   {
+
     /** Number of neurons in the population. */
     long N_;
 
@@ -252,9 +239,9 @@ private:
     /** Binomial random number switch */
     bool BinoRand_;
 
-    Parameters_();                                  //!< Sets default parameter values
-    void get( DictionaryDatum& ) const;             //!< Store current values in dictionary
-    void set( const DictionaryDatum&, Node* node ); //!< Set values from dictionary
+    Parameters_();                      //!< Sets default parameter values
+    void get( DictionaryDatum& ) const; //!< Store current values in dictionary
+    void set( const DictionaryDatum& ); //!< Set values from dictionary
   };
 
   // ----------------------------------------------------------------
@@ -264,6 +251,7 @@ private:
    */
   struct State_
   {
+
     double y0_;        // DC input current
     double I_syn_ex_;  // synaptic current
     double I_syn_in_;  // synaptic current
@@ -278,7 +266,7 @@ private:
     State_(); //!< Default initialization
 
     void get( DictionaryDatum&, const Parameters_& ) const;
-    void set( const DictionaryDatum&, const Parameters_&, Node* );
+    void set( const DictionaryDatum&, const Parameters_& );
   };
 
   // ----------------------------------------------------------------
@@ -458,10 +446,10 @@ gif_pop_psc_exp::get_status( DictionaryDatum& d ) const
 inline void
 gif_pop_psc_exp::set_status( const DictionaryDatum& d )
 {
-  Parameters_ ptmp = P_;     // temporary copy in case of errors
-  ptmp.set( d, this );       // throws if BadProperty
-  State_ stmp = S_;          // temporary copy in case of errors
-  stmp.set( d, ptmp, this ); // throws if BadProperty
+  Parameters_ ptmp = P_; // temporary copy in case of errors
+  ptmp.set( d );         // throws if BadProperty
+  State_ stmp = S_;      // temporary copy in case of errors
+  stmp.set( d, ptmp );   // throws if BadProperty
 
   // We now know that (ptmp, stmp) are consistent. We do not
   // write them back to (P_, S_) before we are also sure that

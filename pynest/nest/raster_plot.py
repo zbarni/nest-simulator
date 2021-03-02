@@ -23,6 +23,8 @@
 
 import nest
 import numpy
+import pylab
+from pylab import show, savefig
 
 __all__ = [
     'extract_events',
@@ -30,7 +32,9 @@ __all__ = [
     'from_device',
     'from_file',
     'from_file_numpy',
-    'from_file_pandas'
+    'frim_file_pandas',
+    'show',
+    'savefig',
 ]
 
 
@@ -44,21 +48,21 @@ def extract_events(data, time=None, sel=None):
     ----------
     data : list
         Matrix such that
-        data[:,0] is a vector of all node_ids and
+        data[:,0] is a vector of all gids and
         data[:,1] a vector with the corresponding time stamps.
     time : list, optional
         List with at most two entries such that
         time=[t_max] extracts all events with t< t_max
         time=[t_min, t_max] extracts all events with t_min <= t < t_max
     sel : list, optional
-        List of node_ids such that
-        sel=[node_id1, ... , node_idn] extracts all events from these node_ids.
+        List of gids such that
+        sel=[gid1, ... , gidn] extracts all events from these gids.
         All others are discarded.
 
     Returns
     -------
     numpy.array
-        List of events as (node_id, t) tuples
+        List of events as (gid, t) tuples
     """
     val = []
 
@@ -71,10 +75,10 @@ def extract_events(data, time=None, sel=None):
 
     for v in data:
         t = v[1]
-        node_id = v[0]
+        gid = v[0]
         if time and (t < t_min or t >= t_max):
             continue
-        if not sel or node_id in sel:
+        if not sel or gid in sel:
             val.append(v)
 
     return numpy.array(val)
@@ -87,23 +91,21 @@ def from_data(data, sel=None, **kwargs):
     ----------
     data : list
         Matrix such that
-        data[:,0] is a vector of all node_ids and
+        data[:,0] is a vector of all gids and
         data[:,1] a vector with the corresponding time stamps.
     sel : list, optional
-        List of node_ids such that
-        sel=[node_id1, ... , node_idn] extracts all events from these node_ids.
+        List of gids such that
+        sel=[gid1, ... , gidn] extracts all events from these gids.
         All others are discarded.
     kwargs:
         Parameters passed to _make_plot
     """
-    if len(data) == 0:
-        raise nest.kernel.NESTError("No data to plot.")
     ts = data[:, 1]
     d = extract_events(data, sel=sel)
     ts1 = d[:, 1]
-    node_ids = d[:, 0]
+    gids = d[:, 0]
 
-    return _make_plot(ts, ts1, node_ids, data[:, 0], **kwargs)
+    return _make_plot(ts, ts1, gids, data[:, 0], **kwargs)
 
 
 def from_file(fname, **kwargs):
@@ -138,7 +140,10 @@ def from_file_pandas(fname, **kwargs):
     """Use pandas."""
     data = None
     for f in fname:
-        dataFrame = pandas.read_table(f, header=2, skipinitialspace=True)
+        dataFrame = pandas.read_csv(
+            f, sep='\s+', lineterminator='\n',
+            header=None, index_col=None,
+            skipinitialspace=True)
         newdata = dataFrame.values
 
         if data is None:
@@ -153,7 +158,7 @@ def from_file_numpy(fname, **kwargs):
     """Use numpy."""
     data = None
     for f in fname:
-        newdata = numpy.loadtxt(f, skiprows=3)
+        newdata = numpy.loadtxt(f)
 
         if data is None:
             data = newdata
@@ -163,14 +168,16 @@ def from_file_numpy(fname, **kwargs):
     return from_data(data, **kwargs)
 
 
-def from_device(detec, **kwargs):
+def from_device(detec, plot_lid=False, **kwargs):
     """
-    Plot raster from a spike recorder.
+    Plot raster from a spike detector.
 
     Parameters
     ----------
     detec : TYPE
         Description
+    plot_lid : bool, optional
+        Whether to convert from local IDs
     kwargs:
         Parameters passed to _make_plot
 
@@ -179,42 +186,45 @@ def from_device(detec, **kwargs):
     nest.kernel.NESTError
     """
 
-    type_id = nest.GetDefaults(detec.get('model'), 'type_id')
-    if not type_id == "spike_recorder":
-        raise nest.kernel.NESTError("Please provide a spike_recorder.")
+    type_id = nest.GetDefaults(nest.GetStatus(detec, 'model')[0], 'type_id')
+    if not type_id.name == "spike_detector":
+        raise nest.kernel.NESTError("Please provide a spike_detector.")
 
-    if detec.get('record_to') == "memory":
+    if nest.GetStatus(detec, "to_memory")[0]:
 
-        ts, node_ids = _from_memory(detec)
+        ts, gids = _from_memory(detec)
 
         if not len(ts):
             raise nest.kernel.NESTError("No events recorded!")
 
-        if "title" not in kwargs:
-            kwargs["title"] = "Raster plot from device '%i'" % detec.get('global_id')
+        if plot_lid:
+            gids = [nest.hl_api.GetLID([x]) for x in gids]
 
-        if detec.get('time_in_steps'):
+        if "title" not in kwargs:
+            kwargs["title"] = "Raster plot from device '%i'" % detec[0]
+
+        if nest.GetStatus(detec)[0]["time_in_steps"]:
             xlabel = "Steps"
         else:
             xlabel = "Time (ms)"
 
-        return _make_plot(ts, ts, node_ids, node_ids, xlabel=xlabel, **kwargs)
+        return _make_plot(ts, ts, gids, gids, xlabel=xlabel, **kwargs)
 
-    elif detec.get("record_to") == "ascii":
-        fname = detec.get("filenames")
+    elif nest.GetStatus(detec, "to_file")[0]:
+        fname = nest.GetStatus(detec, "filenames")[0]
         return from_file(fname, **kwargs)
 
     else:
         raise nest.kernel.NESTError("No data to plot. Make sure that \
-            record_to is set to either 'ascii' or 'memory'.")
+            either to_memory or to_file are set.")
 
 
 def _from_memory(detec):
-    ev = detec.get("events")
+    ev = nest.GetStatus(detec, "events")[0]
     return ev["times"], ev["senders"]
 
 
-def _make_plot(ts, ts1, node_ids, neurons, hist=True, hist_binwidth=5.0,
+def _make_plot(ts, ts1, gids, neurons, hist=True, hist_binwidth=5.0,
                grayscale=False, title=None, xlabel=None):
     """Generic plotting routine.
 
@@ -226,11 +236,11 @@ def _make_plot(ts, ts1, node_ids, neurons, hist=True, hist_binwidth=5.0,
     ts : list
         All timestamps
     ts1 : list
-        Timestamps corresponding to node_ids
-    node_ids : list
+        Timestamps corresponding to gids
+    gids : list
         Global ids corresponding to ts1
     neurons : list
-        Node IDs of neurons to plot
+        GIDs of neurons to plot
     hist : bool, optional
         Display histogram
     hist_binwidth : float, optional
@@ -242,9 +252,7 @@ def _make_plot(ts, ts1, node_ids, neurons, hist=True, hist_binwidth=5.0,
     xlabel : str, optional
         Label for x-axis
     """
-    import matplotlib.pyplot as plt
-
-    plt.figure()
+    pylab.figure()
 
     if grayscale:
         color_marker = ".k"
@@ -261,42 +269,42 @@ def _make_plot(ts, ts1, node_ids, neurons, hist=True, hist_binwidth=5.0,
     ylabel = "Neuron ID"
 
     if hist:
-        ax1 = plt.axes([0.1, 0.3, 0.85, 0.6])
-        plotid = plt.plot(ts1, node_ids, color_marker)
-        plt.ylabel(ylabel)
-        plt.xticks([])
-        xlim = plt.xlim()
+        ax1 = pylab.axes([0.1, 0.3, 0.85, 0.6])
+        plotid = pylab.plot(ts1, gids, color_marker)
+        pylab.ylabel(ylabel)
+        pylab.xticks([])
+        xlim = pylab.xlim()
 
-        plt.axes([0.1, 0.1, 0.85, 0.17])
+        pylab.axes([0.1, 0.1, 0.85, 0.17])
         t_bins = numpy.arange(
             numpy.amin(ts), numpy.amax(ts),
             float(hist_binwidth)
         )
-        n, _ = _histogram(ts, bins=t_bins)
+        n, bins = _histogram(ts, bins=t_bins)
         num_neurons = len(numpy.unique(neurons))
         heights = 1000 * n / (hist_binwidth * num_neurons)
 
-        plt.bar(t_bins, heights, width=hist_binwidth, color=color_bar,
-                edgecolor=color_edge)
-        plt.yticks([
+        pylab.bar(t_bins, heights, width=hist_binwidth, color=color_bar,
+                  edgecolor=color_edge)
+        pylab.yticks([
             int(x) for x in
             numpy.linspace(0.0, int(max(heights) * 1.1) + 5, 4)
         ])
-        plt.ylabel("Rate (Hz)")
-        plt.xlabel(xlabel)
-        plt.xlim(xlim)
-        plt.axes(ax1)
+        pylab.ylabel("Rate (Hz)")
+        pylab.xlabel(xlabel)
+        pylab.xlim(xlim)
+        pylab.axes(ax1)
     else:
-        plotid = plt.plot(ts1, node_ids, color_marker)
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
+        plotid = pylab.plot(ts1, gids, color_marker)
+        pylab.xlabel(xlabel)
+        pylab.ylabel(ylabel)
 
     if title is None:
-        plt.title("Raster plot")
+        pylab.title("Raster plot")
     else:
-        plt.title(title)
+        pylab.title(title)
 
-    plt.draw()
+    pylab.draw()
 
     return plotid
 

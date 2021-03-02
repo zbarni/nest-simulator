@@ -669,6 +669,44 @@ public:
 };
 
 /**
+ * Exception to be thrown if the wrong argument type
+ * is given to a function
+ * @ingroup KernelExceptions
+ */
+class SubnetExpected : public KernelException
+{
+public:
+  SubnetExpected()
+    : KernelException( "SubnetExpected" )
+  {
+  }
+  ~SubnetExpected() throw()
+  {
+  }
+
+  std::string message() const;
+};
+
+/**
+ * Exception to be thrown if the wrong argument type
+ * is given to a function
+ * @ingroup KernelExceptions
+ */
+class SimulationError : public KernelException
+{
+public:
+  SimulationError()
+    : KernelException( "SimulationError" )
+  {
+  }
+  ~SimulationError() throw()
+  {
+  }
+
+  std::string message() const;
+};
+
+/**
  * Exception to be thrown on prototype construction if Time objects
  * incompatible. This exception is to be thrown by the default constructor of
  * nodes which require that Time objects have properties wrt resolution.
@@ -1139,92 +1177,6 @@ private:
   const int channel_;
   const std::string model_;
 };
-
 #endif
-
-class UnmatchedSteps : public KernelException
-{
-public:
-  UnmatchedSteps( int steps_left, int total_steps )
-    : current_step_( total_steps - steps_left )
-    , total_steps_( total_steps )
-  {
-  }
-
-  std::string message() const;
-
-private:
-  const int current_step_;
-  const int total_steps_;
-};
-
-class BackendPrepared : public KernelException
-{
-public:
-  BackendPrepared( const std::string& backend )
-    : backend_( backend )
-  {
-  }
-
-  BackendPrepared( std::string&& backend )
-    : backend_( std::move( backend ) )
-  {
-  }
-
-
-  std::string message() const;
-
-private:
-  const std::string backend_;
-};
-
-class BackendNotPrepared : public KernelException
-{
-public:
-  BackendNotPrepared( const std::string& backend )
-    : backend_( backend )
-  {
-  }
-
-  BackendNotPrepared( std::string&& backend )
-    : backend_( std::move( backend ) )
-  {
-  }
-
-  std::string message() const;
-
-private:
-  const std::string backend_;
-};
-
-class LayerExpected : public KernelException
-{
-public:
-  LayerExpected()
-    : KernelException( "LayerExpected" )
-  {
-  }
-  ~LayerExpected() throw()
-  {
-  }
-
-  std::string message() const;
-};
-
-class LayerNodeExpected : public KernelException
-{
-public:
-  LayerNodeExpected()
-    : KernelException( "LayerNodeExpected" )
-  {
-  }
-  ~LayerNodeExpected() throw()
-  {
-  }
-
-  std::string message() const;
-};
-
-} // namespace nest
-
+}
 #endif

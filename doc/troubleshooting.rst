@@ -1,11 +1,11 @@
 Troubleshooting
-===============
+==============================
 
 Here you can find some tips to try to find out why your installation of NEST didn't work.
 
 
 1. CMAKE error says a <package> was not found or <package> is too old
----------------------------------------------------------------------
+------------------------------------------------------------------------
 
 
 *Please make sure you have followed the installation instructions* :doc:`found here <installation/index>` *and have installed the
@@ -25,7 +25,7 @@ required dependencies.*
 
     .. code-block:: bash
 
-        cmake -DCMAKE_INSTALL_PREFIX:PATH=<nest_install_dir> </path/to/NEST/src>
+        cmake -DCMAKE_INSTALL_PREFIX:PATH=</install/path> </path/to/NEST/src>
 
 
 **If the error still persists**, you may have more than one installation of the <package>.  A conflict may occur between different package binaries:
@@ -51,34 +51,34 @@ Here is an example,
 
 .. code-block:: bash
 
-    which python3
+    which python
 
 The terminal will display the path to the binary it found:
 
 .. code-block:: bash
 
-    /home/user/ENVNAME/bin/python3
+    /home/user/ENVNAME/bin/python
 
 .. code-block:: bash
 
-    type -a python3
+    type -a python
 
 The terminal will list the paths it found to the package binaries:
 
 .. code-block:: bash
 
-    python3 is /home/user/ENVNAME/bin/python3
-    python3 is /usr/bin/python3
+    python is /home/user/ENVNAME/bin/python
+    python is /usr/bin/python
 
 .. code-block:: bash
 
-    python3 --version
+    python --version
 
 The terminal will display the version number:
 
 .. code-block:: bash
 
-    Python 3.8.2
+    Python 3.6.5
 
 
 
@@ -100,15 +100,16 @@ The terminal will display the version number:
 
     .. code-block:: bash
 
-      cmake -DCMAKE_INSTALL_PREFIX:PATH=<nest_install_dir> </path/to/NEST/src>
+      cmake -DCMAKE_INSTALL_PREFIX:PATH=</install/path> </path/to/NEST/src>
 
 
 2. When I try to import nest, I get an error in Python that says 'No Module named NEST' or 'ImportError'
---------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------
 
 This error message means something in your environment is not set correctly, depending on how you installed NEST.
 
 1. Check which Python version you are running
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
    You must use **Python 3** if you installed NEST with
 
@@ -125,16 +126,18 @@ This error message means something in your environment is not set correctly, dep
 If your Python version is correct and you still have the same error, then try one of the following options:
 
 2a. If you compiled NEST from source
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     * Your path variables may not be set correctly, in that case run:
 
           .. code-block:: bash
 
-              source <nest_install_dir>/bin/nest_vars.sh
+              source </path/to/nest_install_dir>/bin/nest_vars.sh
 
 
 
 2b. If you installed NEST via the conda-forge package
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     * Make sure you have activated the correct environment
 
@@ -159,7 +162,7 @@ If your Python version is correct and you still have the same error, then try on
 
          .. code-block:: bash
 
-             which python3
+             which python
              which nest
 
      These commands will show you the path to the Python and NEST binary that your environment is using. You may have more than one installation on your system.
@@ -167,7 +170,7 @@ If your Python version is correct and you still have the same error, then try on
 
          .. code-block:: bash
 
-             /path/to/conda/envs/ENVNAME/bin/python3
+             /path/to/conda/envs/ENVNAME/bin/python
              /path/to/conda/envs/ENVNAME/bin/nest
 
 
@@ -187,7 +190,7 @@ If your Python version is correct and you still have the same error, then try on
 
 
 3. Docker crashes! Message from NotebookApp: "Running as root is not recommended. Use --allow-root to bypass."
---------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------------------------
 
     **We strongly recommend that you do not run Docker as root!**
 
@@ -206,8 +209,10 @@ If your Python version is correct and you still have the same error, then try on
        docker run --rm -e LOCAL_USER_ID=`id -u $USER` -v $(pwd):/opt/data -p 8080:8080 nestsim/nest:<version> notebook
 
 Can't find an answer to your question?
---------------------------------------
+----------------------------------------------
 
-Please check out our `GitHub issues page <https://github.com/nest/nest-simulator/issues>`_ or search the
-`Mailing list <https://www.nest-simulator.org/mailinglist/hyperkitty/list/users@nest-simulator.org/>`_ for your question. We may have already answered it!
+We may have answered your question on GitHub or in our Mailing List!
+
+Please check out our `GitHub issues page <https://github.com/nest/nest-simulator/issues?utf8=%E2%9C%93&q=is%3Aissue+?>`_ or search the
+`mailing list <https://www.nest-simulator.org/mailinglist/>`_ for your question.
 

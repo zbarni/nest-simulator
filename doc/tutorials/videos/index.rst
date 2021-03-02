@@ -1,4 +1,4 @@
-Video tutorial series
+Video Tutorial Series
 =====================
 
 .. toctree::

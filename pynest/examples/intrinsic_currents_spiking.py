@@ -51,6 +51,7 @@ See Also
 # We imported all necessary modules for simulation, analysis and plotting.
 
 import nest
+import numpy as np
 import matplotlib.pyplot as plt
 
 ###############################################################################
@@ -91,7 +92,8 @@ num_recep = len(w_recep)
 # configuration.
 
 nrn = nest.Create('ht_neuron')
-p_gens = nest.Create('poisson_generator', 4, params={'rate': rate_in})
+p_gens = nest.Create('poisson_generator', 4,
+                     params={'rate': rate_in})
 mm = nest.Create('multimeter',
                  params={'interval': 0.1,
                          'record_from': ['V_m', 'theta',
@@ -112,11 +114,12 @@ mm = nest.Create('multimeter',
 #
 # Note that we need to pack the `pg` variable into a list before
 # passing it to ``Connect``, because iterating over the `p_gens` list
-# makes `pg` a "naked" node ID.
+# makes `pg` a "naked" GID.
 
 receptors = nest.GetDefaults('ht_neuron')['receptor_types']
-for index, (rec_name, rec_wgt) in enumerate(w_recep.items()):
-    nest.Connect(p_gens[index], nrn, syn_spec={'receptor_type': receptors[rec_name], 'weight': rec_wgt})
+for pg, (rec_name, rec_wgt) in zip(p_gens, w_recep.items()):
+    nest.Connect([pg], nrn, syn_spec={'receptor_type': receptors[rec_name],
+                                      'weight': rec_wgt})
 
 ###############################################################################
 # We then connnect the ``multimeter``. Note that the multimeter is connected to
@@ -137,7 +140,7 @@ nest.Simulate(t_sim)
 # returned by the multimeter. Because all NEST function return arrays,
 # we need to pick out element `0` from the result of ``GetStatus``.
 
-data = mm.events
+data = nest.GetStatus(mm)[0]['events']
 t = data['times']
 
 ###############################################################################

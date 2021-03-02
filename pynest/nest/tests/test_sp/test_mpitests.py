@@ -42,6 +42,10 @@ class TestStructuralPlasticityMPI(unittest.TestCase):
                 print("Executing test with command: " + command)
                 command = command.split()
                 my_env = os.environ.copy()
+                try:
+                    my_env.pop("DELAY_PYNEST_INIT")
+                except:
+                    pass
                 returncode = call(command, env=my_env)
                 if returncode != 0:  # call returns 0 for passing tests
                     failing_tests.append(test)
@@ -55,7 +59,6 @@ def suite():
     suite = unittest.TestLoader().loadTestsFromTestCase(
         TestStructuralPlasticityMPI)
     return suite
-
 
 if __name__ == '__main__':
     runner = unittest.TextTestRunner(verbosity=2)

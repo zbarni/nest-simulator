@@ -25,9 +25,9 @@
 
 // Includes from nestkernel:
 #include "connector_model.h"
-#include "nest_datums.h"
 #include "nest_types.h"
 #include "node.h"
+#include "sibling_container.h"
 
 // Includes from sli:
 #include "dictdatum.h"
@@ -84,39 +84,30 @@ public:
   Node* get_node();
 
   /**
-   * get node ID of volume transmitter
+   * get gid of volume transmitter
    */
-  long get_vt_node_id() const;
-
-  /**
-   * get node ID of weight_recorder
-   */
-  index get_wr_node_id() const;
+  long get_vt_gid() const;
 
   /**
    * get weight_recorder
    */
-  NodeCollectionDatum get_weight_recorder() const;
+  const SiblingContainer* get_weight_recorder() const;
 
 
 private:
-  NodeCollectionDatum weight_recorder_;
-  long wr_node_id_;
+  /**
+   * weight recorder
+   */
+  const SiblingContainer* weight_recorder_;
 };
 
 inline long
-CommonSynapseProperties::get_vt_node_id() const
+CommonSynapseProperties::get_vt_gid() const
 {
   return -1;
 }
 
-inline index
-CommonSynapseProperties::get_wr_node_id() const
-{
-  return wr_node_id_;
-}
-
-inline NodeCollectionDatum
+inline const SiblingContainer*
 CommonSynapseProperties::get_weight_recorder() const
 {
   return weight_recorder_;

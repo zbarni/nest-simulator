@@ -58,65 +58,49 @@ public:
   }
 
   /**
-   * Assign a range of node IDs for the given model
+   * Assign a range of GIDs for the given model
    */
-  void add_range( index model, index first_node_id, index last_node_id );
+  void add_range( index model, index first_gid, index last_gid );
 
   /**
-   * Check whether a node ID is with the range of assigned node IDs
+   * Check whether a GID is with the range of assigned gids
    */
-  bool is_in_range( index node_id ) const;
+  bool is_in_range( index gid ) const;
 
   /**
-   * Get the ID of the model to which this node ID is assigned
+   * Get the ID of the model to which this GID is assigned
    */
-  index get_model_id( index node_id ) const;
+  index get_model_id( index gid ) const;
 
   /**
-   * Return the Model for a given node ID.
+   * Return the Model for a given GID.
    */
-  Model* get_model_of_node_id( index );
+  Model* get_model_of_gid( index );
 
   /**
-   * Check whether this model ID has any node IDs assigned to it
+   * Check whether this model ID has any gids assigned to it
    */
   bool model_in_use( index i ) const;
 
   /**
    * Return the contiguous range of IDs of nodes assigned to the same model
-   * as the node with the given node ID.
+   * as the node with the given GID.
    */
-  const modelrange& get_contiguous_node_id_range( index node_id ) const;
+  const modelrange& get_contiguous_gid_range( index gid ) const;
 
-  std::vector< modelrange >::const_iterator begin() const;
-
-  std::vector< modelrange >::const_iterator end() const;
 
 private:
   std::vector< modelrange > modelranges_;
-  index first_node_id_;
-  index last_node_id_;
+  index first_gid_;
+  index last_gid_;
 };
-
+}
 
 inline bool
-nest::ModelRangeManager::is_in_range( index node_id ) const
+nest::ModelRangeManager::is_in_range( index gid ) const
 {
-  return ( ( node_id <= last_node_id_ ) and ( node_id >= first_node_id_ ) );
+  return ( ( gid <= last_gid_ ) and ( gid >= first_gid_ ) );
 }
 
-inline std::vector< modelrange >::const_iterator
-nest::ModelRangeManager::begin() const
-{
-  return modelranges_.begin();
-}
-
-inline std::vector< modelrange >::const_iterator
-nest::ModelRangeManager::end() const
-{
-  return modelranges_.end();
-}
-
-} // namespace nest end
 
 #endif

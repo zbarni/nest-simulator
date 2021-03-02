@@ -11,7 +11,7 @@ still works, while in `PyNEST <introduction-to-pynest.md>`__, the
 `Connect()` function has been renamed to `OneToOneConnect()`.
 However, simple cases, which are just creating one-to-one connections
 between two lists of nodes are still working with the new command
-without the need to change the code. Note that the spatial connection is
+without the need to change the code. Note that the topology-module is
 not effected by theses changes. The translation between the old and the
 new connect routines is described in `Old Connection
 Routines <connection-management.md#old-connection-routines>`__.
@@ -39,14 +39,14 @@ connectivity rule (default: ``all_to_all``) or a dictionary specifying
 the rule and the rule-specific parameters (e.g. ``indegree``), which must
 be given.
 
-In addition switches allowing self-connections (``allow_autapses``, default:
-True) and multiple connections between pairs of neurons (``allow_multapses``,
+In addition switches allowing self-connections (``autapses``, default:
+True) and multiple connections between pairs of neurons (``multapses``,
 default: True) can be contained in the dictionary. The validity of the
 switches is confined by the Connect-call. Thus connecting the same set
-of neurons multiple times with the switch 'allow_multapses' set to False, one
+of neurons multiple times with the switch 'multapses' set to False, one
 particular connection might be established multiple times. The same
 applies to nodes being specified multiple times in the source or target
-vector. Here 'allow_multapses' set to False will result in one potential
+vector. Here 'multapses' set to False will result in one potential
 connection between each occurring node pair.
 
 ``syn_spec`` defines the synapse type and its properties. It can be
@@ -86,7 +86,7 @@ One-to-one connections
 
     n = 10
     A = Create("iaf_psc_alpha", n)
-    B = Create("spike_recorder", n)
+    B = Create("spike_detector", n)
     Connect(A, B, 'one_to_one')
 
 This rule can also take two Global IDs A and B instead of integer lists.
@@ -251,7 +251,7 @@ Example:
 ::
 
     A = Create("iaf_psc_alpha", 2)
-    B = Create("spike_recorder", 2)
+    B = Create("spike_detector", 2)
     conn_dict = {'rule': 'one_to_one'}
     syn_dict = {'weight': [1.2, -3.5]}
     Connect(A, B, conn_dict, syn_dict)
@@ -376,12 +376,14 @@ parameters it needs to be defined in two steps:
 For further information on the distributions see :doc:`Random numbers in
 NEST <random_numbers>`.
 
-Spatially-structured networks
------------------------------
 
-If nodes are created with spatial distributions, it is possible to create connections with
-attributes based on node positions. See :doc:`Spatially-structured networks <spatial/index>`
-for more information.
+Topological Connections
+-----------------------
+
+If the connect functions above are not sufficient, the topology provides
+more sophisticated functions. For example, it is possible to create
+receptive field structures and much more! See :doc:`Topological
+Connections <topology/index>` for more information.
 
 .. _receptor-types:
 
@@ -502,7 +504,7 @@ Inspecting Connections
 
 ``GetConnections(source=None, target=None, synapse_model=None)``: Return
 an array of identifiers for connections that match the given parameters.
-source and target need to be lists of node IDs, model is a string
+source and target need to be lists of global ids, model is a string
 representing a synapse model. If GetConnections is called without
 parameters, all connections in the network are returned. If a list of
 source neurons is given, only connections from these pre-synaptic
@@ -511,7 +513,7 @@ connections to these post-synaptic neurons are returned. If a synapse
 model is given, only connections with this synapse type are returned.
 Any combination of source, target and model parameters is permitted.
 Each connection id is a 5-tuple or, if available, a NumPy array with the
-following five entries: source-node_id, target-node_id, target-thread,
+following five entries: source-gid, target-gid, target-thread,
 synapse-id, port.
 
 The result of `GetConnections` can be given as an argument to the
@@ -555,3 +557,4 @@ can then be given as arguments to the `SetStatus()` functions:
       'delay': 1.0,
       'source': 1,
       'receptor': 0}]
+

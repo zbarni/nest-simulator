@@ -29,7 +29,6 @@
 
 // Includes from libnestutil:
 #include "numerics.h"
-#include "dict_util.h"
 
 // Includes from librandom:
 #include "exp_randomdev.h"
@@ -41,7 +40,6 @@
 #include "event_delivery_manager_impl.h"
 #include "exceptions.h"
 #include "kernel_manager.h"
-#include "nest_timeconverter.h"
 #include "nest_types.h"
 #include "recordables_map.h"
 #include "ring_buffer.h"
@@ -97,8 +95,6 @@ public:
   void get_status( DictionaryDatum& ) const;
   void set_status( const DictionaryDatum& );
 
-  void calibrate_time( const TimeConverter& tc );
-
 
 private:
   void init_state_( const Node& proto );
@@ -127,8 +123,8 @@ private:
 
     Parameters_(); //!< Sets default parameter values
 
-    void get( DictionaryDatum& ) const;             //!< Store current values in dictionary
-    void set( const DictionaryDatum&, Node* node ); //!< Set values from dicitonary
+    void get( DictionaryDatum& ) const; //!< Store current values in dictionary
+    void set( const DictionaryDatum& ); //!< Set values from dicitonary
   };
 
   // ----------------------------------------------------------------
@@ -138,16 +134,16 @@ private:
    */
   struct State_
   {
-    bool y_;                 //!< output of neuron in [0,1]
-    double h_;               //!< total input current to neuron
-    double last_in_node_id_; //!< node ID of the last spike being received
-    Time t_next_;            //!< time point of next update
-    Time t_last_in_spike_;   //!< time point of last input spike seen
+    bool y_;               //!< output of neuron in [0,1]
+    double h_;             //!< total input current to neuron
+    double last_in_gid_;   //!< gid of the last spike being received
+    Time t_next_;          //!< time point of next update
+    Time t_last_in_spike_; //!< time point of last input spike seen
 
     State_(); //!< Default initialization
 
     void get( DictionaryDatum&, const Parameters_& ) const;
-    void set( const DictionaryDatum&, const Parameters_&, Node* );
+    void set( const DictionaryDatum&, const Parameters_& );
   };
 
   // ----------------------------------------------------------------
@@ -291,10 +287,10 @@ template < class TGainfunction >
 inline void
 binary_neuron< TGainfunction >::set_status( const DictionaryDatum& d )
 {
-  Parameters_ ptmp = P_;     // temporary copy in case of errors
-  ptmp.set( d, this );       // throws if BadProperty
-  State_ stmp = S_;          // temporary copy in case of errors
-  stmp.set( d, ptmp, this ); // throws if BadProperty
+  Parameters_ ptmp = P_; // temporary copy in case of errors
+  ptmp.set( d );         // throws if BadProperty
+  State_ stmp = S_;      // temporary copy in case of errors
+  stmp.set( d, ptmp );   // throws if BadProperty
 
   // We now know that (ptmp, stmp) are consistent. We do not
   // write them back to (P_, S_) before we are also sure that
@@ -306,7 +302,7 @@ binary_neuron< TGainfunction >::set_status( const DictionaryDatum& d )
   P_ = ptmp;
   S_ = stmp;
 
-  gain_.set( d, this );
+  gain_.set( d );
 }
 
 template < typename TGainfunction >
@@ -327,7 +323,7 @@ template < class TGainfunction >
 binary_neuron< TGainfunction >::State_::State_()
   : y_( false )
   , h_( 0.0 )
-  , last_in_node_id_( 0 )
+  , last_in_gid_( 0 )
   , t_next_( Time::neg_inf() )          // mark as not initialized
   , t_last_in_spike_( Time::neg_inf() ) // mark as not intialized
 {
@@ -346,9 +342,9 @@ binary_neuron< TGainfunction >::Parameters_::get( DictionaryDatum& d ) const
 
 template < class TGainfunction >
 void
-binary_neuron< TGainfunction >::Parameters_::set( const DictionaryDatum& d, Node* node )
+binary_neuron< TGainfunction >::Parameters_::set( const DictionaryDatum& d )
 {
-  updateValueParam< double >( d, names::tau_m, tau_m_, node );
+  updateValue< double >( d, names::tau_m, tau_m_ );
   if ( tau_m_ <= 0 )
   {
     throw BadProperty( "All time constants must be strictly positive." );
@@ -365,7 +361,7 @@ binary_neuron< TGainfunction >::State_::get( DictionaryDatum& d, const Parameter
 
 template < class TGainfunction >
 void
-binary_neuron< TGainfunction >::State_::set( const DictionaryDatum&, const Parameters_&, Node* node )
+binary_neuron< TGainfunction >::State_::set( const DictionaryDatum&, const Parameters_& )
 {
 }
 
@@ -511,7 +507,7 @@ binary_neuron< TGainfunction >::handle( SpikeEvent& e )
   // A single spike signals a transition to 0 state, two spikes in same time
   // step signal the transition to 1 state.
   //
-  // Remember the node ID of the sender of the last spike being received
+  // Remember the global id of the sender of the last spike being received
   // this assumes that several spikes being sent by the same neuron in the same
   // time step are received consecutively or are conveyed by setting the
   // multiplicity accordingly.
@@ -526,15 +522,15 @@ binary_neuron< TGainfunction >::handle( SpikeEvent& e )
 
 
   long m = e.get_multiplicity();
-  long node_id = e.get_sender_node_id();
+  long gid = e.get_sender_gid();
   const Time& t_spike = e.get_stamp();
 
   if ( m == 1 )
   { // multiplicity == 1, either a single 1->0 event or the first or second of a
     // pair of 0->1 events
-    if ( node_id == S_.last_in_node_id_ && t_spike == S_.t_last_in_spike_ )
+    if ( gid == S_.last_in_gid_ && t_spike == S_.t_last_in_spike_ )
     {
-      // received twice the same node ID, so transition 0->1
+      // received twice the same gid, so transition 0->1
       // take double weight to compensate for subtracting first event
       B_.spikes_.add_value(
         e.get_rel_delivery_steps( kernel().simulation_manager.get_slice_origin() ), 2.0 * e.get_weight() );
@@ -554,7 +550,7 @@ binary_neuron< TGainfunction >::handle( SpikeEvent& e )
     B_.spikes_.add_value( e.get_rel_delivery_steps( kernel().simulation_manager.get_slice_origin() ), e.get_weight() );
   }
 
-  S_.last_in_node_id_ = node_id;
+  S_.last_in_gid_ = gid;
   S_.t_last_in_spike_ = t_spike;
 }
 
@@ -579,14 +575,6 @@ void
 binary_neuron< TGainfunction >::handle( DataLoggingRequest& e )
 {
   B_.logger_.handle( e );
-}
-
-template < class TGainfunction >
-void
-binary_neuron< TGainfunction >::calibrate_time( const TimeConverter& tc )
-{
-  S_.t_next_ = tc.from_old_tics( S_.t_next_.get_tics() );
-  S_.t_last_in_spike_ = tc.from_old_tics( S_.t_last_in_spike_.get_tics() );
 }
 
 

@@ -34,7 +34,10 @@ class StatusTestCase(unittest.TestCase):
     def test_GetDefaults_JSON(self):
         """JSON data of GetDefaults"""
 
-        for m in nest.Models():
+        # sli_neuron does not work under PyNEST
+        models = (m for m in nest.Models() if m != 'sli_neuron')
+
+        for m in models:
             d_json = nest.GetDefaults(m, output='json')
             self.assertIsInstance(d_json, str)
 
@@ -52,17 +55,14 @@ class StatusTestCase(unittest.TestCase):
     def test_GetStatus_JSON(self):
         """JSON data of GetStatus"""
 
-        for m in nest.Models('nodes'):
+        # sli_neuron does not work under PyNEST
+        models = (m for m in nest.Models('nodes') if m != 'sli_neuron')
+
+        for m in models:
             nest.ResetKernel()
             n = nest.Create(m)
             d_json = nest.GetStatus(n, output='json')
             self.assertIsInstance(d_json, str)
-
-        nest.ResetKernel()
-        n = nest.NodeCollection()
-        d_json = nest.GetStatus(n, output='json')
-        self.assertIsInstance(d_json, str)
-        self.assertEqual(d_json, '[]')
 
 
 def suite():

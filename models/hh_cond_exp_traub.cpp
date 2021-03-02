@@ -37,7 +37,6 @@
 #include <gsl/gsl_sf_exp.h>
 
 // Includes from libnestutil:
-#include "dict_util.h"
 #include "numerics.h"
 
 // Includes from nestkernel:
@@ -208,22 +207,22 @@ nest::hh_cond_exp_traub::Parameters_::get( DictionaryDatum& d ) const
 }
 
 void
-nest::hh_cond_exp_traub::Parameters_::set( const DictionaryDatum& d, Node* node )
+nest::hh_cond_exp_traub::Parameters_::set( const DictionaryDatum& d )
 {
-  updateValueParam< double >( d, names::g_Na, g_Na, node );
-  updateValueParam< double >( d, names::g_K, g_K, node );
-  updateValueParam< double >( d, names::g_L, g_L, node );
-  updateValueParam< double >( d, names::C_m, C_m, node );
-  updateValueParam< double >( d, names::E_Na, E_Na, node );
-  updateValueParam< double >( d, names::E_K, E_K, node );
-  updateValueParam< double >( d, names::E_L, E_L, node );
-  updateValueParam< double >( d, names::V_T, V_T, node );
-  updateValueParam< double >( d, names::E_ex, E_ex, node );
-  updateValueParam< double >( d, names::E_in, E_in, node );
-  updateValueParam< double >( d, names::tau_syn_ex, tau_synE, node );
-  updateValueParam< double >( d, names::tau_syn_in, tau_synI, node );
-  updateValueParam< double >( d, names::t_ref, t_ref_, node );
-  updateValueParam< double >( d, names::I_e, I_e, node );
+  updateValue< double >( d, names::g_Na, g_Na );
+  updateValue< double >( d, names::g_K, g_K );
+  updateValue< double >( d, names::g_L, g_L );
+  updateValue< double >( d, names::C_m, C_m );
+  updateValue< double >( d, names::E_Na, E_Na );
+  updateValue< double >( d, names::E_K, E_K );
+  updateValue< double >( d, names::E_L, E_L );
+  updateValue< double >( d, names::V_T, V_T );
+  updateValue< double >( d, names::E_ex, E_ex );
+  updateValue< double >( d, names::E_in, E_in );
+  updateValue< double >( d, names::tau_syn_ex, tau_synE );
+  updateValue< double >( d, names::tau_syn_in, tau_synI );
+  updateValue< double >( d, names::t_ref, t_ref_ );
+  updateValue< double >( d, names::I_e, I_e );
 
   if ( C_m <= 0 )
   {
@@ -251,12 +250,12 @@ nest::hh_cond_exp_traub::State_::get( DictionaryDatum& d ) const
 }
 
 void
-nest::hh_cond_exp_traub::State_::set( const DictionaryDatum& d, const Parameters_&, Node* node )
+nest::hh_cond_exp_traub::State_::set( const DictionaryDatum& d, const Parameters_& )
 {
-  updateValueParam< double >( d, names::V_m, y_[ V_M ], node );
-  updateValueParam< double >( d, names::Act_m, y_[ HH_M ], node );
-  updateValueParam< double >( d, names::Inact_h, y_[ HH_H ], node );
-  updateValueParam< double >( d, names::Act_n, y_[ HH_N ], node );
+  updateValue< double >( d, names::V_m, y_[ V_M ] );
+  updateValue< double >( d, names::Act_m, y_[ HH_M ] );
+  updateValue< double >( d, names::Inact_h, y_[ HH_H ] );
+  updateValue< double >( d, names::Act_n, y_[ HH_N ] );
   if ( y_[ HH_M ] < 0 || y_[ HH_H ] < 0 || y_[ HH_N ] < 0 )
   {
     throw BadProperty( "All (in)activation variables must be non-negative." );

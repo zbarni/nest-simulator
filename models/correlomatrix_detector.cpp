@@ -27,9 +27,6 @@
 #include <functional> // for bind2nd
 #include <numeric>
 
-// Includes from libnestutil:
-#include "dict_util.h"
-
 // Includes from nestkernel:
 #include "kernel_manager.h"
 
@@ -117,13 +114,13 @@ nest::correlomatrix_detector::State_::get( DictionaryDatum& d ) const
 }
 
 bool
-nest::correlomatrix_detector::Parameters_::set( const DictionaryDatum& d, const correlomatrix_detector& n, Node* node )
+nest::correlomatrix_detector::Parameters_::set( const DictionaryDatum& d, const correlomatrix_detector& n )
 {
   bool reset = false;
   double t;
   long N;
 
-  if ( updateValueParam< long >( d, names::N_channels, N, node ) )
+  if ( updateValue< long >( d, names::N_channels, N ) )
   {
     if ( N < 1 )
     {
@@ -136,25 +133,25 @@ nest::correlomatrix_detector::Parameters_::set( const DictionaryDatum& d, const 
     }
   }
 
-  if ( updateValueParam< double >( d, names::delta_tau, t, node ) )
+  if ( updateValue< double >( d, names::delta_tau, t ) )
   {
     delta_tau_ = Time::ms( t );
     reset = true;
   }
 
-  if ( updateValueParam< double >( d, names::tau_max, t, node ) )
+  if ( updateValue< double >( d, names::tau_max, t ) )
   {
     tau_max_ = Time::ms( t );
     reset = true;
   }
 
-  if ( updateValueParam< double >( d, names::Tstart, t, node ) )
+  if ( updateValue< double >( d, names::Tstart, t ) )
   {
     Tstart_ = Time::ms( t );
     reset = true;
   }
 
-  if ( updateValueParam< double >( d, names::Tstop, t, node ) )
+  if ( updateValue< double >( d, names::Tstop, t ) )
   {
     Tstop_ = Time::ms( t );
     reset = true;
@@ -179,7 +176,7 @@ nest::correlomatrix_detector::Parameters_::set( const DictionaryDatum& d, const 
 }
 
 void
-nest::correlomatrix_detector::State_::set( const DictionaryDatum&, const Parameters_&, bool, Node* node )
+nest::correlomatrix_detector::State_::set( const DictionaryDatum&, const Parameters_&, bool )
 {
 }
 

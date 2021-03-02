@@ -32,7 +32,6 @@
 #include <limits>
 
 // Includes from libnestutil:
-#include "dict_util.h"
 #include "numerics.h"
 
 // Includes from nestkernel:
@@ -185,25 +184,25 @@ nest::aeif_psc_delta::Parameters_::get( DictionaryDatum& d ) const
 }
 
 void
-nest::aeif_psc_delta::Parameters_::set( const DictionaryDatum& d, Node* node )
+nest::aeif_psc_delta::Parameters_::set( const DictionaryDatum& d )
 {
-  updateValueParam< double >( d, names::V_th, V_th, node );
-  updateValueParam< double >( d, names::V_peak, V_peak_, node );
-  updateValueParam< double >( d, names::t_ref, t_ref_, node );
-  updateValueParam< double >( d, names::E_L, E_L, node );
-  updateValueParam< double >( d, names::V_reset, V_reset_, node );
+  updateValue< double >( d, names::V_th, V_th );
+  updateValue< double >( d, names::V_peak, V_peak_ );
+  updateValue< double >( d, names::t_ref, t_ref_ );
+  updateValue< double >( d, names::E_L, E_L );
+  updateValue< double >( d, names::V_reset, V_reset_ );
 
-  updateValueParam< double >( d, names::C_m, C_m, node );
-  updateValueParam< double >( d, names::g_L, g_L, node );
+  updateValue< double >( d, names::C_m, C_m );
+  updateValue< double >( d, names::g_L, g_L );
 
-  updateValueParam< double >( d, names::a, a, node );
-  updateValueParam< double >( d, names::b, b, node );
-  updateValueParam< double >( d, names::Delta_T, Delta_T, node );
-  updateValueParam< double >( d, names::tau_w, tau_w, node );
+  updateValue< double >( d, names::a, a );
+  updateValue< double >( d, names::b, b );
+  updateValue< double >( d, names::Delta_T, Delta_T );
+  updateValue< double >( d, names::tau_w, tau_w );
 
-  updateValueParam< double >( d, names::I_e, I_e, node );
+  updateValue< double >( d, names::I_e, I_e );
 
-  updateValueParam< double >( d, names::gsl_error_tol, gsl_error_tol, node );
+  updateValue< double >( d, names::gsl_error_tol, gsl_error_tol );
 
   if ( V_reset_ >= V_peak_ )
   {
@@ -254,7 +253,7 @@ nest::aeif_psc_delta::Parameters_::set( const DictionaryDatum& d, Node* node )
     throw BadProperty( "The gsl_error_tol must be strictly positive." );
   }
 
-  updateValueParam< bool >( d, names::refractory_input, with_refr_input_, node );
+  updateValue< bool >( d, names::refractory_input, with_refr_input_ );
 }
 
 void
@@ -265,10 +264,10 @@ nest::aeif_psc_delta::State_::get( DictionaryDatum& d ) const
 }
 
 void
-nest::aeif_psc_delta::State_::set( const DictionaryDatum& d, const Parameters_&, Node* node )
+nest::aeif_psc_delta::State_::set( const DictionaryDatum& d, const Parameters_& )
 {
-  updateValueParam< double >( d, names::V_m, y_[ V_M ], node );
-  updateValueParam< double >( d, names::w, y_[ W ], node );
+  updateValue< double >( d, names::V_m, y_[ V_M ] );
+  updateValue< double >( d, names::w, y_[ W ] );
 }
 
 nest::aeif_psc_delta::Buffers_::Buffers_( aeif_psc_delta& n )

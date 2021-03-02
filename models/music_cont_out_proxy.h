@@ -40,10 +40,7 @@
 
 // Includes from nestkernel:
 #include "device_node.h"
-#include "node_collection.h"
-#include "nest_timeconverter.h"
 #include "nest_types.h"
-#include "device_node.h"
 
 // Includes from sli:
 #include "arraydatum.h"
@@ -51,15 +48,14 @@
 namespace nest
 {
 
-/* BeginUserDocs: device, MUSIC
+/** @BeginDocumentation
+@ingroup Devices
+@ingroup music
 
-Short description
-+++++++++++++++++
+Name: music_cont_out_proxy - A device which sends continuous data from NEST to
+MUSIC.
 
-A device which sends continuous data from NEST to MUSIC
-
-Description
-+++++++++++
+Description:
 
 A music_cont_out_proxy can be used to send continuous data from
 neurons over MUSIC to remote applications. It works in a similar fashion like
@@ -74,21 +70,19 @@ started for the first time.
 In case of multiple recordables the data can be read out (PyNEST only) of the
 receiving buffer via the following access pattern:
 
-    buffer[ target_node_id_index ][ recordable_index] = buffer[ target_node_id_index *
+    buffer[ target_gid_index ][ recordable_index] = buffer[ target_gid_index *
     record_from.size() + recordable_index ]
 
     For example:
-    target_node_ids = [ 2, 5, 4 ], record_from = ["V_m"] and
+    target_gids = [ 2, 5, 4 ], record_from = ["V_m"] and
 
-    we want to get "V_m" for neuron with node ID 5: buffer[ 1*1 + 0 ]
+    we want to get "V_m" for neuron with GID 5: buffer[ 1*1 + 0 ]
 
-This model is only available if NEST was compiled with MUSIC.
-
-Parameters
-++++++++++
+Parameters:
 
 The following properties are available in the status dictionary:
 
+\verbatim embed:rst
 ============ ========  ========================================================
  interval    ms        Recording interval
  targets     array     Global id list of neurons to be observed
@@ -101,14 +95,17 @@ The following properties are available in the status dictionary:
                        from, obtained from the /recordables entry of the
                        model from which one wants to record
 ============ ========  ========================================================
+\endverbatim
 
-See also
-++++++++
+Author: Martin Asghar Schulze, Forschungszentrum fur Informatik Karlsruhe (FZI)
 
-music_cont_in_proxy, music_event_out_proxy, music_event_in_proxy, music_message_in_proxy
+FirstVersion: March 2016
 
-EndUserDocs */
+Availability: Only when compiled with MPI and MUSIC
 
+SeeAlso: music_cont_in_proxy, music_event_out_proxy, music_event_in_proxy,
+music_message_in_proxy
+*/
 class music_cont_out_proxy : public DeviceNode
 {
 
@@ -149,8 +146,6 @@ public:
   void get_status( DictionaryDatum& ) const;
   void set_status( const DictionaryDatum& );
 
-  void calibrate_time( const TimeConverter& tc );
-
 protected:
   void init_state_( Node const& );
   void init_buffers_();
@@ -179,7 +174,7 @@ private:
     Time interval_;                   //!< sampling interval, in ms
     std::string port_name_;           //!< the name of MUSIC port to connect to
     std::vector< Name > record_from_; //!< recordables to record from
-    NodeCollectionPTR targets_;       //!< nodes to be observed
+    std::vector< long > target_gids_; //!< Neuron GIDs to be observed
 
     void get( DictionaryDatum& ) const; //!< Store current values in dictionary
     void set( const DictionaryDatum&, const Node&, const State_&, const Buffers_& ); //!< Set values from dictionary
@@ -219,12 +214,6 @@ inline SignalType
 nest::music_cont_out_proxy::sends_signal() const
 {
   return ALL;
-}
-
-inline void
-nest::music_cont_out_proxy::calibrate_time( const TimeConverter& tc )
-{
-  P_.interval_ = tc.from_old_tics( P_.interval_.get_tics() );
 }
 
 } // namespace

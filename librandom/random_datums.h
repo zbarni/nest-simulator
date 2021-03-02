@@ -34,7 +34,8 @@
 #include "randomgen.h"
 
 // Includes from sli:
-#include "sharedptrdatum.h"
+#include "lockptrdatum.h"
+#include "lockptrdatum_impl.h"
 
 namespace librandom
 {
@@ -42,22 +43,22 @@ namespace librandom
 /** Encapsulates random number generators in SLI.
  *  @ingroup RandomNumberGenerators
  */
-typedef sharedPtrDatum< librandom::RandomGen, &RandomNumbers::RngType > RngDatum;
+typedef lockPTRDatum< librandom::RandomGen, &RandomNumbers::RngType > RngDatum;
 
 /** Encapsulates random number generator factories in SLI.
  *  @ingroup RandomNumberGenerators
  */
-typedef sharedPtrDatum< librandom::GenericRNGFactory, &RandomNumbers::RngFactoryType > RngFactoryDatum;
+typedef lockPTRDatum< librandom::GenericRNGFactory, &RandomNumbers::RngFactoryType > RngFactoryDatum;
 
 /** Encapsulates random deviate generators in SLI.
  *  @ingroup RandomNumberGenerators
  */
-typedef sharedPtrDatum< librandom::RandomDev, &RandomNumbers::RdvType > RdvDatum;
+typedef lockPTRDatum< librandom::RandomDev, &RandomNumbers::RdvType > RdvDatum;
 
 /** Encapsulates random deviate generator factories in SLI.
  *  @ingroup RandomNumberGenerators
  */
-typedef sharedPtrDatum< librandom::GenericRandomDevFactory, &RandomNumbers::RdvFactoryType > RdvFactoryDatum;
+typedef lockPTRDatum< librandom::GenericRandomDevFactory, &RandomNumbers::RdvFactoryType > RdvFactoryDatum;
 }
 
 #endif

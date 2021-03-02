@@ -121,12 +121,18 @@ class Main():
         neuron_it = None
         stimulator_it = None
 
-        excl = ["correlation_detector", "parrot_neuron", "parrot_neuron_ps"]
-        models = [x for x in nest.Models("nodes") if x not in excl]
+        models = nest.Models("nodes")
+        models = [x for x in models if
+                  x not in ["correlation_detector", "sli_neuron",
+                            "iaf_psc_alpha_norec", "parrot_neuron",
+                            "parrot_neuron_ps"]]
 
         for entry in models:
 
-            entrytype = nest.GetDefaults(entry)["element_type"]
+            try:
+                entrytype = nest.GetDefaults(entry)["element_type"]
+            except:
+                entrytype = "unknown"
 
             if entrytype == "neuron":
                 it = neuronmodelsliststore.append([entry])
@@ -227,16 +233,17 @@ class Main():
         delay = self._builder.get_object("delay").get_value()
         nest.Connect(stimulator, neuron, weight, delay)
 
-        sr = nest.Create("spike_recorder")
-        nest.Connect(neuron, sr)
+        sd = nest.Create("spike_detector", params={"record_to": ["memory"]})
+        nest.Connect(neuron, sd)
 
-        vm = nest.Create("voltmeter", params={"interval": 0.1})
+        vm = nest.Create("voltmeter", params={"record_to": ["memory"],
+                                              "interval": 0.1})
         nest.Connect(vm, neuron)
 
         simtime = self._builder.get_object("simtime").get_value()
         nest.Simulate(simtime)
 
-        self.update_figure(nest.GetStatus(sr, "events"),
+        self.update_figure(nest.GetStatus(sd, "events"),
                            nest.GetStatus(vm, "events"))
 
     def on_delete_event(self, widget, event):

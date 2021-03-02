@@ -26,7 +26,6 @@
 #include <limits>
 
 // Includes from libnestutil:
-#include "dict_util.h"
 #include "numerics.h"
 
 // Includes from nestkernel:
@@ -78,9 +77,9 @@ nest::izhikevich::Parameters_::Parameters_()
 }
 
 nest::izhikevich::State_::State_()
-  : v_( -65.0 )       // membrane potential
-  , u_( 0.2 * -65.0 ) // membrane recovery variable (b * V_m_init)
-  , I_( 0.0 )         // input current
+  : v_( -65.0 ) // membrane potential
+  , u_( 0.0 )   // membrane recovery variable
+  , I_( 0.0 )   // input current
 {
 }
 
@@ -102,16 +101,16 @@ nest::izhikevich::Parameters_::get( DictionaryDatum& d ) const
 }
 
 void
-nest::izhikevich::Parameters_::set( const DictionaryDatum& d, Node* node )
+nest::izhikevich::Parameters_::set( const DictionaryDatum& d )
 {
 
-  updateValueParam< double >( d, names::V_th, V_th_, node );
-  updateValueParam< double >( d, names::V_min, V_min_, node );
-  updateValueParam< double >( d, names::I_e, I_e_, node );
-  updateValueParam< double >( d, names::a, a_, node );
-  updateValueParam< double >( d, names::b, b_, node );
-  updateValueParam< double >( d, names::c, c_, node );
-  updateValueParam< double >( d, names::d, d_, node );
+  updateValue< double >( d, names::V_th, V_th_ );
+  updateValue< double >( d, names::V_min, V_min_ );
+  updateValue< double >( d, names::I_e, I_e_ );
+  updateValue< double >( d, names::a, a_ );
+  updateValue< double >( d, names::b, b_ );
+  updateValue< double >( d, names::c, c_ );
+  updateValue< double >( d, names::d, d_ );
   updateValue< bool >( d, names::consistent_integration, consistent_integration_ );
   const double h = Time::get_resolution().get_ms();
   if ( not consistent_integration_ && h != 1.0 )
@@ -128,10 +127,10 @@ nest::izhikevich::State_::get( DictionaryDatum& d, const Parameters_& ) const
 }
 
 void
-nest::izhikevich::State_::set( const DictionaryDatum& d, const Parameters_&, Node* node )
+nest::izhikevich::State_::set( const DictionaryDatum& d, const Parameters_& )
 {
-  updateValueParam< double >( d, names::U_m, u_, node );
-  updateValueParam< double >( d, names::V_m, v_, node );
+  updateValue< double >( d, names::U_m, u_ );
+  updateValue< double >( d, names::V_m, v_ );
 }
 
 nest::izhikevich::Buffers_::Buffers_( izhikevich& n )

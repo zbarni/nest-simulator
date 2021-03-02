@@ -29,11 +29,11 @@
 #include "conngen.h"
 
 // Includes from sli:
-#include "sharedptrdatum.h"
+#include "lockptrdatum_impl.h"
 #include "stringdatum.h"
 #include "tokenutils.h"
 
-template class sharedPtrDatum< ConnectionGenerator, &nest::ConnectionGeneratorType >;
+template class lockPTRDatum< ConnectionGenerator, &nest::ConnectionGeneratorType >;
 
 namespace nest
 {
@@ -88,8 +88,8 @@ cg sources targets params syn_model ->  -
 
 Parameters:
 cg         connectiongenerator            - ConnectionGenerator
-sources    nodecollection/array/intvector  - the node IDs of the sources
-targets    nodecollection/array/intvector  - the node IDs of the targets
+sources    gidcollection/array/intvector  - the GIDs of the sources
+targets    gidcollection/array/intvector  - the GIDs of the targets
 params     dict (optional)    - A map that translates the names /weight and
                                /delay to indices in the value set
 syn_model  literal (optional) - A literal specifying the synapse model
@@ -109,15 +109,15 @@ SeeAlso: Connect, synapsedict, GetOptions, CGParse, CGParseFile,
 CGSelectImplementation
 */
 
-// CGConnect for conngen nodecollection nodecollection dict literal
+// CGConnect for conngen gidcollection gidcollection dict literal
 void
 ConnectionGeneratorModule::CGConnect_cg_g_g_D_lFunction::execute( SLIInterpreter* i ) const
 {
   i->assert_stack_load( 5 );
 
   ConnectionGeneratorDatum cg = getValue< ConnectionGeneratorDatum >( i->OStack.pick( 4 ) );
-  NodeCollectionDatum sources = getValue< NodeCollectionDatum >( i->OStack.pick( 3 ) );
-  NodeCollectionDatum targets = getValue< NodeCollectionDatum >( i->OStack.pick( 2 ) );
+  GIDCollectionDatum sources = getValue< GIDCollectionDatum >( i->OStack.pick( 3 ) );
+  GIDCollectionDatum targets = getValue< GIDCollectionDatum >( i->OStack.pick( 2 ) );
   DictionaryDatum params_map = getValue< DictionaryDatum >( i->OStack.pick( 1 ) );
   const Name synmodel_name = getValue< Name >( i->OStack.pick( 0 ) );
 
@@ -126,6 +126,7 @@ ConnectionGeneratorModule::CGConnect_cg_g_g_D_lFunction::execute( SLIInterpreter
   i->OStack.pop( 5 );
   i->EStack.pop();
 }
+
 
 /** @BeginDocumentation
 Name: CGParse - Call ConnectionGenerator::fromXML() and return a
@@ -238,8 +239,8 @@ cg sources targets :cgsetmask -> -
 
 Parameters:
 cg      - ConnectionGenerator
-sources - A nodecollection of nodes used as source masks
-targets - A nodecollection of nodes used as target masks
+sources - A gidcollection of nodes used as source masks
+targets - A gidcollection of nodes used as target masks
 
 Description:
 Set masks for sources and targets on a given ConnectionGenerator
@@ -262,8 +263,8 @@ ConnectionGeneratorModule::CGSetMask_cg_g_gFunction::execute( SLIInterpreter* i 
   i->assert_stack_load( 3 );
 
   ConnectionGeneratorDatum cg = getValue< ConnectionGeneratorDatum >( i->OStack.pick( 2 ) );
-  NodeCollectionDatum sources = getValue< NodeCollectionDatum >( i->OStack.pick( 1 ) );
-  NodeCollectionDatum targets = getValue< NodeCollectionDatum >( i->OStack.pick( 0 ) );
+  GIDCollectionDatum sources = getValue< GIDCollectionDatum >( i->OStack.pick( 1 ) );
+  GIDCollectionDatum targets = getValue< GIDCollectionDatum >( i->OStack.pick( 0 ) );
 
   cg_set_masks( cg, sources, targets );
 
@@ -360,11 +361,13 @@ ConnectionGeneratorModule::CGNext_cgFunction::execute( SLIInterpreter* i ) const
     }
 
     delete[] values;
+    cgd.unlock();
 
     i->OStack.push( true );
   }
   else
   {
+    cgd.unlock();
     i->OStack.push( false );
   }
 

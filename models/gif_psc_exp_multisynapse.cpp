@@ -26,7 +26,6 @@
 #include <limits>
 
 // Includes from libnestutil:
-#include "dict_util.h"
 #include "numerics.h"
 
 // Includes from nestkernel:
@@ -136,22 +135,22 @@ nest::gif_psc_exp_multisynapse::Parameters_::get( DictionaryDatum& d ) const
 }
 
 void
-nest::gif_psc_exp_multisynapse::Parameters_::set( const DictionaryDatum& d, Node* node )
+nest::gif_psc_exp_multisynapse::Parameters_::set( const DictionaryDatum& d )
 {
-  updateValueParam< double >( d, names::I_e, I_e_, node );
-  updateValueParam< double >( d, names::E_L, E_L_, node );
-  updateValueParam< double >( d, names::g_L, g_L_, node );
-  updateValueParam< double >( d, names::C_m, c_m_, node );
-  updateValueParam< double >( d, names::V_reset, V_reset_, node );
-  updateValueParam< double >( d, names::Delta_V, Delta_V_, node );
-  updateValueParam< double >( d, names::V_T_star, V_T_star_, node );
+  updateValue< double >( d, names::I_e, I_e_ );
+  updateValue< double >( d, names::E_L, E_L_ );
+  updateValue< double >( d, names::g_L, g_L_ );
+  updateValue< double >( d, names::C_m, c_m_ );
+  updateValue< double >( d, names::V_reset, V_reset_ );
+  updateValue< double >( d, names::Delta_V, Delta_V_ );
+  updateValue< double >( d, names::V_T_star, V_T_star_ );
 
-  if ( updateValueParam< double >( d, names::lambda_0, lambda_0_, node ) )
+  if ( updateValue< double >( d, names::lambda_0, lambda_0_ ) )
   {
     lambda_0_ /= 1000.0; // convert to 1/ms
   }
 
-  updateValueParam< double >( d, names::t_ref, t_ref_, node );
+  updateValue< double >( d, names::t_ref, t_ref_ );
 
   updateValue< std::vector< double > >( d, names::tau_sfa, tau_sfa_ );
   updateValue< std::vector< double > >( d, names::q_sfa, q_sfa_ );
@@ -243,9 +242,9 @@ nest::gif_psc_exp_multisynapse::State_::get( DictionaryDatum& d, const Parameter
 }
 
 void
-nest::gif_psc_exp_multisynapse::State_::set( const DictionaryDatum& d, const Parameters_& p, Node* node )
+nest::gif_psc_exp_multisynapse::State_::set( const DictionaryDatum& d, const Parameters_& p )
 {
-  updateValueParam< double >( d, names::V_m, V_, node );
+  updateValue< double >( d, names::V_m, V_ );
 }
 
 nest::gif_psc_exp_multisynapse::Buffers_::Buffers_( gif_psc_exp_multisynapse& n )

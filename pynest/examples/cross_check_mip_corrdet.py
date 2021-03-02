@@ -39,14 +39,14 @@ time. `tau > 0` means spike2 is later than spike1
 """
 
 import nest
-import numpy as np
+from matplotlib.pylab import *
 
 
 def corr_spikes_sorted(spike1, spike2, tbin, tau_max, h):
     tau_max_i = int(tau_max / h)
     tbin_i = int(tbin / h)
 
-    cross = np.zeros(int(2 * tau_max_i / tbin_i + 1), 'd')
+    cross = zeros(int(2 * tau_max_i / tbin_i + 1), 'd')
 
     j0 = 0
 
@@ -63,7 +63,6 @@ def corr_spikes_sorted(spike1, spike2, tbin, tau_max, h):
 
     return cross
 
-
 nest.ResetKernel()
 
 h = 0.1             # Computation step size in ms
@@ -79,20 +78,22 @@ nest.SetKernelStatus({'local_num_threads': 1, 'resolution': h,
 
 # Set up network, connect and simulate
 mg = nest.Create('mip_generator')
-mg.set(rate=nu, p_copy=pc)
+nest.SetStatus(mg, {'rate': nu, 'p_copy': pc})
 
 cd = nest.Create('correlation_detector')
-cd.set(tau_max=tau_max, delta_tau=delta_tau)
+nest.SetStatus(cd, {'tau_max': tau_max, 'delta_tau': delta_tau})
 
-sr = nest.Create('spike_recorder', params={'time_in_steps': True})
+sd = nest.Create('spike_detector')
+nest.SetStatus(sd, {'withtime': True,
+                    'withgid': True, 'time_in_steps': True})
 
 pn1 = nest.Create('parrot_neuron')
 pn2 = nest.Create('parrot_neuron')
 
 nest.Connect(mg, pn1)
 nest.Connect(mg, pn2)
-nest.Connect(pn1, sr)
-nest.Connect(pn2, sr)
+nest.Connect(pn1, sd)
+nest.Connect(pn2, sd)
 
 nest.SetDefaults('static_synapse', {'weight': 1.0, 'receptor_type': 0})
 nest.Connect(pn1, cd)
@@ -102,7 +103,7 @@ nest.Connect(pn2, cd)
 
 nest.Simulate(T)
 
-n_events = cd.get('n_events')
+n_events = nest.GetStatus(cd)[0]['n_events']
 n1 = n_events[0]
 n2 = n_events[1]
 
@@ -113,10 +114,10 @@ h = 0.1
 tau_max = 100.0  # ms correlation window
 t_bin = 10.0  # ms bin size
 
-spikes = sr.get('events', 'senders')
+spikes = nest.GetStatus(sd)[0]['events']['senders']
 
-sp1 = spikes[spikes == 4]
-sp2 = spikes[spikes == 5]
+sp1 = find(spikes[:] == 4)
+sp2 = find(spikes[:] == 5)
 
 # Find crosscorrolation
 cross = corr_spikes_sorted(sp1, sp2, t_bin, tau_max, h)

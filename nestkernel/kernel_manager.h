@@ -121,9 +121,6 @@ class KernelManager
 private:
   KernelManager();
   ~KernelManager();
-
-  unsigned long fingerprint_;
-
   static KernelManager* kernel_manager_instance_;
 
   KernelManager( KernelManager const& );  // do not implement
@@ -160,7 +157,7 @@ public:
   /**
    * Reset kernel.
    *
-   * Resets kernel by finalizing and initializing.
+   * Resets kernel by finalizing and initalizing.
    *
    * @see initialize(), finalize()
    */
@@ -169,15 +166,11 @@ public:
   /**
    * Change number of threads.
    *
-   * The kernel first needs to be finalized with the old number of threads
-   * and then initialized with the new number of threads.
+   * No need to reset all managers, only those affected by num thread changes.
    *
    * @see initialize(), finalize()
    */
-  void change_number_of_threads( thread );
-
-  void prepare();
-  void cleanup();
+  void change_num_threads( size_t num_threads );
 
   void set_status( const DictionaryDatum& );
   void get_status( DictionaryDatum& );
@@ -185,9 +178,8 @@ public:
   //! Returns true if kernel is initialized
   bool is_initialized() const;
 
-  unsigned long get_fingerprint() const;
-
   LoggingManager logging_manager;
+  IOManager io_manager;
   MPIManager mpi_manager;
   VPManager vp_manager;
   RNGManager rng_manager;
@@ -199,10 +191,8 @@ public:
   ModelManager model_manager;
   MUSICManager music_manager;
   NodeManager node_manager;
-  IOManager io_manager;
 
 private:
-  std::vector< ManagerInterface* > managers;
   bool initialized_; //!< true if all sub-managers initialized
 };
 
@@ -227,12 +217,6 @@ inline bool
 nest::KernelManager::is_initialized() const
 {
   return initialized_;
-}
-
-inline unsigned long
-nest::KernelManager::get_fingerprint() const
-{
-  return fingerprint_;
 }
 
 #endif /* KERNEL_MANAGER_H */

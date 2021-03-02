@@ -39,15 +39,13 @@
 namespace nest
 {
 
-/* BeginUserDocs: device, generator, rate
+/** @BeginDocumentation
+@ingroup Devices
+@ingroup generator
 
-Short description
-+++++++++++++++++
+Name: step_rate_generator - provides a piecewise constant input rate
 
-Provide a piecewise constant input rate
-
-Description
-+++++++++++
+Description:
 
 The rate_generator provides a piecewise constant rate input to the
 connected rate unit(s). Please note that this input is handled in the same
@@ -55,11 +53,23 @@ way as input from any other rate unit, i.e. it is processed by the input
 function of the receiving rate unit. The amplitude of the rate is changed
 at the specified times. The unit of the rate is Hz.
 
-If allow_offgrid_times is false, times will be rounded to the nearest
-grid point if they are less than tic/2 from the grid point, otherwise
-NEST reports an error. If true, times are rounded to the nearest grid
-point if within tic/2 from the grid point, otherwise they are rounded
-up to the *end* of the grid point.
+Parameters:
+
+The following parameters can be set in the status dictionary:
+
+\verbatim embed:rst
+==================== ===============  ======================================
+ amplitude_times     list of ms       Times at which current changes
+ amplitude_values    list of pA       Amplitudes of step current current
+ allow_offgrid_times boolean          Default false
+==================== ===============  ======================================
+\endverbatim
+
+If false, times will be rounded to the nearest step if they are
+less than tic/2 from the step, otherwise NEST reports an error.
+If true,  times are rounded to the nearest step if within tic/2
+from the step, otherwise they are rounded up to the *end* of the
+step.
 
 Note:
 
@@ -68,29 +78,22 @@ to simulation time steps. The option allow_offgrid_times may be
 useful, e.g., if you are using randomized times for rate changes
 which typically would not fall onto simulation time steps.
 
-Parameters
-++++++++++
+Examples:
 
-The following parameters can be set in the status dictionary:
+The rate can be altered in the following way:
 
-==================== ===============  ======================================
- amplitude_times     list of ms       Times at which current changes
- amplitude_values    list of pA       Amplitudes of step current current
- allow_offgrid_times boolean          Default false
-==================== ===============  ======================================
+   /step_rate_generator Create /sc Set
+   sc << /amplitude_times [0.2 0.5] /amplitude_values [2.0 4.0] >> SetStatus
 
-Sends
-+++++
+   The amplitude of the rate will be 0.0 Hz in the time interval [0, 0.2),
+   2.0 Hz in the interval [0.2, 0.5) and 4.0 Hz from then on.
 
-DelayedRateConnectionEvent
+Sends: DelayedRateConnectionEvent
 
-See also
-++++++++
+Author: Sandra Nestler, David Dahmen
 
-step_current_generator
-
-EndUserDocs */
-
+SeeAlso: step_current_generator, Device, StimulatingDevice
+*/
 class step_rate_generator : public DeviceNode
 {
 
@@ -131,12 +134,6 @@ public:
     return true;
   }
 
-  Name
-  get_element_type() const
-  {
-    return names::stimulator;
-  }
-
 private:
   void init_state_( const Node& );
   void init_buffers_();
@@ -167,7 +164,7 @@ private:
 
     void get( DictionaryDatum& ) const; //!< Store current values in dictionary
     //! Set values from dictionary
-    void set( const DictionaryDatum&, Buffers_&, Node* );
+    void set( const DictionaryDatum&, Buffers_& );
 
     /**
      * Return time as Time object if valid, otherwise throw BadProperty
@@ -257,8 +254,8 @@ step_rate_generator::get_status( DictionaryDatum& d ) const
 inline void
 step_rate_generator::set_status( const DictionaryDatum& d )
 {
-  Parameters_ ptmp = P_;   // temporary copy in case of errors
-  ptmp.set( d, B_, this ); // throws if BadProperty
+  Parameters_ ptmp = P_; // temporary copy in case of errors
+  ptmp.set( d, B_ );     // throws if BadProperty
 
   // We now know that ptmp is consistent. We do not write it back
   // to P_ before we are also sure that the properties to be set

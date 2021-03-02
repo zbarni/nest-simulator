@@ -29,6 +29,7 @@
 // Includes from nestkernel:
 #include "exceptions.h"
 #include "kernel_manager.h"
+#include "subnet.h"
 
 // Includes from sli:
 #include "arraydatum.h"
@@ -39,10 +40,11 @@ namespace nest
 {
 
 Node::Node()
-  : deprecation_warning()
-  , node_id_( 0 )
+  : gid_( 0 )
+  , lid_( 0 )
   , thread_lid_( invalid_index )
   , model_id_( -1 )
+  , parent_( 0 )
   , thread_( 0 )
   , vp_( invalid_thread_ )
   , frozen_( false )
@@ -52,10 +54,11 @@ Node::Node()
 }
 
 Node::Node( const Node& n )
-  : deprecation_warning( n.deprecation_warning )
-  , node_id_( 0 )
+  : gid_( 0 )
+  , lid_( 0 )
   , thread_lid_( n.thread_lid_ )
   , model_id_( n.model_id_ )
+  , parent_( n.parent_ )
   , thread_( n.thread_ )
   , vp_( n.vp_ )
   , frozen_( n.frozen_ )
@@ -78,11 +81,6 @@ Node::init_state()
 }
 
 void
-Node::init_state_( Node const& )
-{
-}
-
-void
 Node::init_buffers()
 {
   if ( buffers_initialized_ )
@@ -93,23 +91,6 @@ Node::init_buffers()
   init_buffers_();
 
   buffers_initialized_ = true;
-}
-
-void
-Node::init_buffers_()
-{
-}
-
-void
-Node::set_initialized()
-{
-  set_initialized_();
-  initialized_ = true;
-}
-
-void
-Node::set_initialized_()
-{
 }
 
 std::string
@@ -132,6 +113,12 @@ Node::get_model_() const
   }
 
   return *kernel().model_manager.get_model( model_id_ );
+}
+
+bool
+Node::is_local() const
+{
+  return not is_proxy();
 }
 
 DictionaryDatum
@@ -157,31 +144,50 @@ Node::get_status_base()
 {
   DictionaryDatum dict = get_status_dict_();
 
+  assert( dict.valid() );
+
   // add information available for all nodes
-  ( *dict )[ names::local ] = kernel().node_manager.is_local_node( this );
+  ( *dict )[ names::local ] = is_local();
   ( *dict )[ names::model ] = LiteralDatum( get_name() );
-  ( *dict )[ names::global_id ] = get_node_id();
-  ( *dict )[ names::vp ] = get_vp();
-  ( *dict )[ names::element_type ] = LiteralDatum( get_element_type() );
 
   // add information available only for local nodes
-  if ( not is_proxy() )
+  if ( is_local() )
   {
+    ( *dict )[ names::global_id ] = get_gid();
     ( *dict )[ names::frozen ] = is_frozen();
     ( *dict )[ names::node_uses_wfr ] = node_uses_wfr();
-    ( *dict )[ names::thread_local_id ] = get_thread_lid();
     ( *dict )[ names::thread ] = get_thread();
+    ( *dict )[ names::vp ] = get_vp();
+    if ( parent_ )
+    {
+      ( *dict )[ names::parent ] = parent_->get_gid();
+
+      // LIDs are only sensible for nodes with parents.
+      // Add 1 as we count lids internally from 0, but from
+      // 1 in the user interface.
+      ( *dict )[ names::local_id ] = get_lid() + 1;
+    }
   }
+
+  ( *dict )[ names::thread_local_id ] = get_thread_lid();
+  ( *dict )[ names::supports_precise_spikes ] = is_off_grid();
+
+  // This is overwritten with a corresponding value in the
+  // base classes for stimulating and recording devices, and
+  // in other special node classes
+  ( *dict )[ names::element_type ] = LiteralDatum( names::neuron );
 
   // now call the child class' hook
   get_status( dict );
 
+  assert( dict.valid() );
   return dict;
 }
 
 void
 Node::set_status_base( const DictionaryDatum& dict )
 {
+  assert( dict.valid() );
   try
   {
     set_status( dict );
@@ -189,7 +195,7 @@ Node::set_status_base( const DictionaryDatum& dict )
   catch ( BadProperty& e )
   {
     throw BadProperty(
-      String::compose( "Setting status of a '%1' with node ID %2: %3", get_name(), get_node_id(), e.message() ) );
+      String::compose( "Setting status of a '%1' with GID %2: %3", get_name(), get_gid(), e.message() ) );
   }
 
   updateValue< bool >( dict, names::frozen, frozen_ );
@@ -206,14 +212,13 @@ Node::wfr_update( Time const&, const long, const long )
 }
 
 /**
- * Default implementation of check_connection just throws IllegalConnection
+ * Default implementation of check_connection just throws UnexpectedEvent
  */
 port
 Node::send_test_event( Node&, rport, synindex, bool )
 {
-  throw IllegalConnection(
-    "Source node does not send output.\n"
-    "  Note that recorders must be connected as Connect(neuron, recorder)." );
+  throw UnexpectedEvent(
+    "Source node does not send output. Note that detectors need to be connected as Connect(neuron, detector)." );
 }
 
 /**
@@ -291,7 +296,9 @@ Node::handle( DataLoggingRequest& )
 port
 Node::handles_test_event( DataLoggingRequest&, rport )
 {
-  throw IllegalConnection( "The target node or synapse model does not support data logging requests." );
+  throw IllegalConnection(
+    "Possible cause: only static synapse types may be used to connect "
+    "devices." );
 }
 
 void
@@ -321,19 +328,23 @@ Node::handle( DoubleDataEvent& )
 port
 Node::handles_test_event( DoubleDataEvent&, rport )
 {
-  throw IllegalConnection( "The target node or synapse model does not support double data event." );
+  throw IllegalConnection();
 }
 
 port
 Node::handles_test_event( DSSpikeEvent&, rport )
 {
-  throw IllegalConnection( "The target node or synapse model does not support spike input." );
+  throw IllegalConnection(
+    "Possible cause: only static synapse types may be used to connect "
+    "devices." );
 }
 
 port
 Node::handles_test_event( DSCurrentEvent&, rport )
 {
-  throw IllegalConnection( "The target node or synapse model does not support DS current input." );
+  throw IllegalConnection(
+    "Possible cause: only static synapse types may be used to connect "
+    "devices." );
 }
 
 void
@@ -419,6 +430,29 @@ Node::get_LTD_value( double )
   throw UnexpectedEvent();
 }
 
+//double
+//Node::get_shouval_weight( double t, index sender_gid )
+//{
+//  throw UnexpectedEvent();
+//}
+
+double
+Node::shouval_update_weight( double t_start, double t_stop, double weight, double learn_rate, index sender_gid )
+{
+  throw UnexpectedEvent();
+}
+
+double
+Node::shouval_update_weight(  double t_start, double t_stop,
+                              double tau_ltp, double tau_ltd,
+                              double Tp_max, double Td_max,
+                              double eta_ltp, double eta_ltd,
+                              double weight, double learn_rate,
+                              index sender_gid )
+{
+  throw UnexpectedEvent();
+}
+
 double
 Node::get_K_value( double )
 {
@@ -441,54 +475,8 @@ nest::Node::get_history( double, double, std::deque< histentry >::iterator*, std
 void
 nest::Node::get_LTP_history( double,
   double,
-  std::deque< histentry_extended >::iterator*,
-  std::deque< histentry_extended >::iterator* )
-{
-  throw UnexpectedEvent();
-}
-
-void
-nest::Node::get_urbanczik_history( double,
-  double,
-  std::deque< histentry_extended >::iterator*,
-  std::deque< histentry_extended >::iterator*,
-  int )
-{
-  throw UnexpectedEvent();
-}
-
-double
-nest::Node::get_C_m( int )
-{
-  throw UnexpectedEvent();
-}
-
-double
-nest::Node::get_g_L( int )
-{
-  throw UnexpectedEvent();
-}
-
-double
-nest::Node::get_tau_L( int )
-{
-  throw UnexpectedEvent();
-}
-
-double
-nest::Node::get_tau_s( int )
-{
-  throw UnexpectedEvent();
-}
-
-double
-nest::Node::get_tau_syn_ex( int )
-{
-  throw UnexpectedEvent();
-}
-
-double
-nest::Node::get_tau_syn_in( int )
+  std::deque< histentry_cl >::iterator*,
+  std::deque< histentry_cl >::iterator* )
 {
   throw UnexpectedEvent();
 }
@@ -503,6 +491,12 @@ void
 Node::event_hook( DSCurrentEvent& e )
 {
   e.get_receiver().handle( e );
+}
+
+bool
+Node::is_subnet() const
+{
+  return false;
 }
 
 } // namespace

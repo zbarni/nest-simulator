@@ -41,7 +41,7 @@ class VogelsSprekelerConnectionTestCase(unittest.TestCase):
         self.decay_duration = 5.0
         self.synapse_model = "vogels_sprekeler_synapse"
         self.syn_spec = {
-            "synapse_model": self.synapse_model,
+            "model": self.synapse_model,
             "delay": self.dendritic_delay,
             "weight": 5.0,
             "eta": 0.001,
@@ -68,7 +68,7 @@ class VogelsSprekelerConnectionTestCase(unittest.TestCase):
         """Get synapse parameter status."""
         stats = nest.GetConnections(self.pre_neuron,
                                     synapse_model=self.synapse_model)
-        return stats.get(which)
+        return nest.GetStatus(stats, [which])[0][0]
 
     def decay(self, time, Kvalue):
         """Decay variables."""
@@ -108,7 +108,7 @@ class VogelsSprekelerConnectionTestCase(unittest.TestCase):
         badPropertyWith("Kplus", {"Kplus": -1.0})
 
     def test_varsZeroAtStart(self):
-        """Check that pre- and post-synaptic variables are zero at start."""
+        """Check that pre and post-synaptic variables are zero at start."""
         self.assertAlmostEqualDetailed(0.0, self.status("Kplus"),
                                        "Kplus should be zero")
 
@@ -211,9 +211,9 @@ class VogelsSprekelerConnectionTestCase(unittest.TestCase):
                                    source=self.pre_neuron)
         # disable depression to make it get to max weight
         # increase eta to cause enough facilitation
-        conn.set(Wmax=limited_weight)
-        conn.set(eta=5.)
-        conn.set(alpha=0.)
+        nest.SetStatus(conn, "Wmax", limited_weight)
+        nest.SetStatus(conn, "eta", 5.)
+        nest.SetStatus(conn, "alpha", 0.)
 
         self.generateSpikes(self.pre_neuron, [2.0])
         self.generateSpikes(self.post_neuron, [3.0])
@@ -231,7 +231,6 @@ def suite():
 def run():
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(suite())
-
 
 if __name__ == "__main__":
     run()

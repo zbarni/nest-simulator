@@ -32,7 +32,6 @@
 #include "integerdatum.h"
 
 // Includes from libnestutil:
-#include "dict_util.h"
 #include "compose.hpp"
 #include "logging.h"
 

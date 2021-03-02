@@ -91,15 +91,15 @@ class IF_curve():
             nest.SetDefaults(self.model, self.params)
         self.neuron = nest.Create(self.model, self.n_neurons)
         self.noise = nest.Create('noise_generator')
-        self.spike_recorder = nest.Create('spike_recorder')
+        self.spike_detector = nest.Create('spike_detector')
 
     def connect(self):
         #######################################################################
         # We connect the noisy current to the neurons and the neurons to
-        # the spike recorders.
+        # the spike detectors.
 
         nest.Connect(self.noise, self.neuron, 'all_to_all')
-        nest.Connect(self.neuron, self.spike_recorder, 'all_to_all')
+        nest.Connect(self.neuron, self.spike_detector, 'all_to_all')
 
     def output_rate(self, mean, std):
         self.build()
@@ -109,12 +109,14 @@ class IF_curve():
         # We adjust the parameters of the noise according to the current
         # values.
 
-        self.noise.set(mean=mean, std=std, start=0.0, stop=1000., origin=0.)
+        nest.SetStatus(self.noise, [{'mean': mean, 'std': std, 'start': 0.0,
+                                     'stop': 1000., 'origin': 0.}])
 
         # We simulate the network and calculate the rate.
 
         nest.Simulate(self.t_sim)
-        rate = self.spike_recorder.n_events * 1000. / (1. * self.n_neurons * self.t_sim)
+        rate = nest.GetStatus(self.spike_detector, 'n_events')[0] * 1000.0 \
+            / (1. * self.n_neurons * self.t_sim)
         return rate
 
     def compute_transfer(self, i_mean=(400.0, 900.0, 50.0),
@@ -137,10 +139,11 @@ transfer = IF_curve(model, params)
 transfer.compute_transfer()
 
 ###############################################################################
-# After the simulation is finished, we store the data into a file for
+# After the simulation is finished we store the data into a file for
 # later analysis.
 
-with shelve.open(model + '_transfer.dat') as dat:
-    dat['I_mean'] = transfer.i_range
-    dat['I_std'] = transfer.std_range
-    dat['rate'] = transfer.rate
+dat = shelve.open(model + '_transfer.dat')
+dat['I_mean'] = transfer.i_range
+dat['I_std'] = transfer.std_range
+dat['rate'] = transfer.rate
+dat.close()
