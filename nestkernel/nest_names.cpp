@@ -589,6 +589,11 @@ const Name trace_ltd( "trace_ltd" );
 const Name rate_pre( "rate_pre" );
 const Name rate_post( "rate_post" );
 const Name the_delay( "the_delay" );
+const Name fake_spike( "fake_spike" );
+const Name weight_update_once( "weight_update_once" );
+//const Name norm_ff( "norm_ff" );
+//const Name norm_rec( "norm_rec" );
+const Name norm_traces( "norm_traces" );
 
 } // namespace names
 

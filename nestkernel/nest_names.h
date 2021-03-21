@@ -611,6 +611,9 @@ extern const Name trace_ltd;
 extern const Name rate_pre;
 extern const Name rate_post;
 extern const Name the_delay;
+extern const Name fake_spike;
+extern const Name weight_update_once;
+extern const Name norm_traces;
 
 } // namespace names
 
