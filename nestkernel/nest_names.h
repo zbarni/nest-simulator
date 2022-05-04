@@ -614,6 +614,7 @@ extern const Name the_delay;
 extern const Name fake_spike;
 extern const Name weight_update_once;
 extern const Name norm_traces;
+extern const Name weights_ns;
 
 } // namespace names
 

@@ -594,6 +594,7 @@ const Name weight_update_once( "weight_update_once" );
 //const Name norm_ff( "norm_ff" );
 //const Name norm_rec( "norm_rec" );
 const Name norm_traces( "norm_traces" );
+const Name weights_ns( "weights_ns" );
 
 } // namespace names
 
