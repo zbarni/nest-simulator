@@ -44,3 +44,12 @@ nest::histentry_extended::histentry_extended( double t, double dw, size_t access
   , access_counter_( access_counter )
 {
 }
+
+nest::histentry_sh::histentry_sh( double t, double ltp, double ltd, double w, size_t access_counter )
+  : t_( t )
+  , ltp_trace_( ltp )
+  , ltd_trace_( ltd )
+  , w_( w )
+  , access_counter_( access_counter )
+{
+}

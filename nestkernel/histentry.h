@@ -60,6 +60,21 @@ public:
   double dw_;             //!< value dependend on the additional factor
   size_t access_counter_; //!< access counter to enable removal of the entry, once all neurons read it
 };
+
+// entry in the history of LTD and LTP for Shouval synapse
+class histentry_sh
+{
+public:
+  histentry_sh( double t, double ltp_trace_, double ltd_trace_, double w, size_t access_counter );
+
+  double t_; //!< point in time when spike occurred (in ms)
+  double ltp_trace_;  // trace value
+  double ltd_trace_;  // trace value
+  double w_;
+  //! how often this entry was accessed (to enable removal, once read by all
+  //! neurons which need it)
+  size_t access_counter_;
+};
 }
 
 #endif
