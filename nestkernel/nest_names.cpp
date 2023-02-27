@@ -608,6 +608,35 @@ const Name y_1( "y_1" );
 const Name z( "z" );
 const Name z_connected( "z_connected" );
 
+// Cone & Shouval 2020 - variables
+const Name tau_ltp( "tau_ltp" );
+const Name tau_ltd( "tau_ltd" );
+const Name Tp_max( "Tp_max" );
+const Name Td_max( "Td_max" );
+const Name eta_ltp( "eta_ltp" );
+const Name eta_ltd( "eta_ltd" );
+const Name T_tr( "T_tr" );
+const Name T_reward( "T_reward" );
+const Name learn_rate( "learn_rate" );
+const Name reward_times( "reward_times" );
+const Name sampling_interval( "sampling_interval" );
+const Name sampled_times( "sampled_times" );
+const Name sampled_ltp( "sampled_ltp" );
+const Name sampled_ltd( "sampled_ltd" );
+const Name sampled_weights( "sampled_weights" );
+const Name sampled_hebbian( "sampled_hebbian" );
+const Name trace_ltp( "trace_ltp" );
+const Name trace_ltd( "trace_ltd" );
+const Name rate_pre( "rate_pre" );
+const Name rate_post( "rate_post" );
+const Name the_delay( "the_delay" );
+const Name fake_spike( "fake_spike" );
+const Name weight_update_once( "weight_update_once" );
+//const Name norm_ff( "norm_ff" );
+//const Name norm_rec( "norm_rec" );
+const Name norm_traces( "norm_traces" );
+const Name weights_ns( "weights_ns" );
+
 } // namespace names
 
 } // namespace nest

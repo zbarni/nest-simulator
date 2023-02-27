@@ -87,6 +87,7 @@
 #include "sigmoid_rate_gg_1998.h"
 #include "tanh_rate.h"
 #include "threshold_lin_rate.h"
+#include "shouval_neuron.h"
 
 // Stimulation devices
 #include "ac_generator.h"
@@ -269,6 +270,8 @@ ModelsModule::init( SLIInterpreter* )
   kernel().model_manager.register_node_model< correlomatrix_detector >( "correlomatrix_detector" );
   kernel().model_manager.register_node_model< correlospinmatrix_detector >( "correlospinmatrix_detector" );
   kernel().model_manager.register_node_model< volume_transmitter >( "volume_transmitter" );
+
+  kernel().model_manager.register_node_model< ShouvalNeuron >( "shouval_neuron" );
 
 #ifdef HAVE_GSL
   kernel().model_manager.register_node_model< iaf_chxk_2008 >( "iaf_chxk_2008" );

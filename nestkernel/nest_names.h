@@ -632,6 +632,33 @@ extern const Name y_1;
 extern const Name z;
 extern const Name z_connected;
 
+// Cone & Shouval 2020 - variables
+extern const Name tau_ltp;
+extern const Name tau_ltd;
+extern const Name Tp_max;
+extern const Name Td_max;
+extern const Name eta_ltp;
+extern const Name eta_ltd;
+extern const Name T_tr;
+extern const Name T_reward;
+extern const Name learn_rate;
+extern const Name reward_times;
+extern const Name sampling_interval;
+extern const Name sampled_times;
+extern const Name sampled_ltp;
+extern const Name sampled_ltd;
+extern const Name sampled_weights;
+extern const Name sampled_hebbian;
+extern const Name trace_ltp;
+extern const Name trace_ltd;
+extern const Name rate_pre;
+extern const Name rate_post;
+extern const Name the_delay;
+extern const Name fake_spike;
+extern const Name weight_update_once;
+extern const Name norm_traces;
+extern const Name weights_ns;
+
 } // namespace names
 
 } // namespace nest

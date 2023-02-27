@@ -421,6 +421,12 @@ nest::iaf_cond_exp::handle( SpikeEvent& e )
 {
   assert( e.get_delay_steps() > 0 );
 
+  std::cout << "is Event valid: " << e.is_valid() << std::endl << std::flush << std::flush;
+  std::cout << "receiver_is_valid: " << e.receiver_is_valid() << std::endl << std::flush << std::flush;
+  std::cout << "sender_is_valid: " << e.sender_is_valid() <<  std::endl << std::flush << std::flush;
+//  std::cout << "e.get_sender_node_id(): " <<  e.get_sender_node_id() << std::endl << std::flush;
+
+
   if ( e.get_weight() > 0.0 )
   {
     B_.spike_exc_.add_value( e.get_rel_delivery_steps( kernel().simulation_manager.get_slice_origin() ),
