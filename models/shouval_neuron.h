@@ -53,23 +53,23 @@ public:
   using Node::handle;
   using Node::handles_test_event;
 
-  port send_test_event( Node&, rport, synindex, bool );
+  port send_test_event( Node&, rport, synindex, bool ) override;
 
-  void handle( SpikeEvent& );
-  void handle( CurrentEvent& );
-  void handle( DataLoggingRequest& );
+  void handle( SpikeEvent& ) override;
+  void handle( CurrentEvent& ) override;
+  void handle( DataLoggingRequest& ) override;
 
-  port handles_test_event( SpikeEvent&, rport );
-  port handles_test_event( CurrentEvent&, rport );
-  port handles_test_event( DataLoggingRequest&, rport );
+  port handles_test_event( SpikeEvent&, rport ) override;
+  port handles_test_event( CurrentEvent&, rport ) override;
+  port handles_test_event( DataLoggingRequest&, rport ) override;
 
-  void get_status( DictionaryDatum& ) const;
-  void set_status( const DictionaryDatum& );
+  void get_status( DictionaryDatum& ) const override;
+  void set_status( const DictionaryDatum& ) override;
 
 private:
-  void init_buffers_();
-  void pre_run_hook();
-  void update( Time const&, const long, const long );
+  void init_buffers_() override;
+  void pre_run_hook() override;
+  void update( Time const&, const long, const long ) override;
   void evolve_synaptic_activation_traces( nest::Time const &, const long );
 
   // END Boilerplate function declarations ----------------------------
@@ -111,8 +111,8 @@ private:
 //    double E_ex;     //!< Excitatory reversal Potential in mV
 //    double E_in;     //!< Inhibitory reversal Potential in mV
 //    double E_L;      //!< Leak reversal Potential (aka resting potential) in mV
-    double tau_synE; //!< Time constant for excitatory synaptic kernel in ms
-    double tau_synI; //!< Time constant for inhibitory synaptic kernel in ms
+//    double tau_synE; //!< Time constant for excitatory synaptic kernel in ms
+//    double tau_synI; //!< Time constant for inhibitory synaptic kernel in ms
 //    double I_e;      //!< Constant Current in pA
 
     bool logOutput;
@@ -178,9 +178,9 @@ public:
     //! Symbolic indices to the elements of the state vector y
     enum StateVecElems
     {
-      V_M = 0,  // TODO del
-      G_EXC,
-      G_INH,
+//      V_M = 0,  // TODO del
+//      G_EXC,
+//      G_INH,
 
       V_m,
       g_ex__X__spikeExcRec1,
@@ -263,9 +263,9 @@ private:
     std::vector<double> recorded_activation_traces;
     std::vector<double> recorded_rates;
 
-    double preSynActivationTraces[10000];  // synaptic activation traces, for each incoming synapse
-    double preSynWeights[10000]; // weights of the current/last spike from each synapse
-    bool isExcRec1[10000];
+    double preSynActivationTraces[10000] = {};  // synaptic activation traces, for each incoming synapse
+    double preSynWeights[10000] = {}; // weights of the current/last spike from each synapse
+    bool isExcRec1[10000] = {};
 
     std::list<TraceTracker_> spikeEvents;  // TODO add comm
     std::set<unsigned long> activeSources;  // TODO add comm
@@ -286,6 +286,9 @@ private:
 
     Variables_( ); //!< Default initialization
     Variables_( const Variables_& );
+
+    void get( DictionaryDatum& ) const;
+    void set( const DictionaryDatum&, const Parameters_&, Node* );
   };
 
   // Access functions for UniversalDataLogger -------------------------------
@@ -351,11 +354,12 @@ inline port
 ShouvalNeuron::handles_test_event( SpikeEvent&, rport receptor_type )
 {
 //  if ( receptor_type != 0 )
-  if ( receptor_type < 0 || receptor_type > 1 )
+//  if ( receptor_type < 0 || receptor_type > 1 )
+  if ( receptor_type < 0)
   {
     throw UnknownReceptorType( receptor_type, get_name() );
   }
-  return 0;
+  return receptor_type;
 }
 
 inline port
@@ -384,6 +388,7 @@ ShouvalNeuron::get_status( DictionaryDatum& d ) const
 {
   P_.get( d );
   S_.get( d );
+  V_.get( d );
 //  ArchivingNode::get_status( d );
   Shouval_Archiving_Node::get_status( d );
 
@@ -395,8 +400,12 @@ ShouvalNeuron::set_status( const DictionaryDatum& d )
 {
   Parameters_ ptmp = P_;     // temporary copy in case of errors
   ptmp.set( d, this );       // throws if BadProperty
+
   State_ stmp = S_;          // temporary copy in case of errors
   stmp.set( d, ptmp, this ); // throws if BadProperty
+
+  Variables_ vtmp = V_;          // temporary copy in case of errors
+  vtmp.set( d, ptmp, this ); // throws if BadProperty
 
   // We now know that (ptmp, stmp) are consistent. We do not
   // write them back to (P_, S_) before we are also sure that
@@ -408,6 +417,7 @@ ShouvalNeuron::set_status( const DictionaryDatum& d )
   // if we get here, temporaries contain consistent set of properties
   P_ = ptmp;
   S_ = stmp;
+  V_ = vtmp;
 }
 
 } // namespace

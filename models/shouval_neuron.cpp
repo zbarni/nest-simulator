@@ -61,14 +61,14 @@ void
 RecordablesMap< ShouvalNeuron >::create()
 {
   // use standard names whereever you can for consistency!
-  insert_( names::V_m, &ShouvalNeuron::get_y_elem_< ShouvalNeuron::State_::V_M > );  // TODO change this to V_m
-  insert_( names::g_ex, &ShouvalNeuron::get_y_elem_< ShouvalNeuron::State_::G_EXC > );
-  insert_( names::g_in, &ShouvalNeuron::get_y_elem_< ShouvalNeuron::State_::G_INH > );
+  insert_( names::V_m, &ShouvalNeuron::get_y_elem_< ShouvalNeuron::State_::V_m > );  // TODO change this to V_m
+//  insert_( names::g_ex, &ShouvalNeuron::get_y_elem_< ShouvalNeuron::State_::G_EXC > );
+//  insert_( names::g_in, &ShouvalNeuron::get_y_elem_< ShouvalNeuron::State_::G_INH > );
 
   // TODO check if really needed?
-//  insert_("g_ex__X__spikeExcRec0", &ShouvalNeuron::get_g_ex__X__spikeExcRec0);
-//  insert_("g_ex__X__spikeExcRec1", &ShouvalNeuron::get_g_ex__X__spikeExcRec1);
-//  insert_("g_in__X__spikeInh", &ShouvalNeuron::get_g_in__X__spikeInh);
+  insert_("g_ex__X__spikeExcRec0", &ShouvalNeuron::get_y_elem_< ShouvalNeuron::State_::g_ex__X__spikeExcRec0 > );
+  insert_("g_ex__X__spikeExcRec1", &ShouvalNeuron::get_y_elem_< ShouvalNeuron::State_::g_ex__X__spikeExcRec1 > );
+  insert_("g_in__X__spikeInh", &ShouvalNeuron::get_y_elem_< ShouvalNeuron::State_::g_in__X__spikeInh > );
 }
 }
 
@@ -84,43 +84,39 @@ nest::ShouvalNeuron_dynamics( double, const double y[], double f[], void* pnode 
 
   const bool is_refractory = node.S_.r_ > 0;
 
-  // y[] here is---and must be---the state vector supplied by the integrator,
-  // not the state vector in the node, node.S_.y[].
-
-  // The following code is verbose for the sake of clarity. We assume that a
-  // good compiler will optimize the verbosity away ...
-
   // Clamp membrane potential to V_reset while refractory, otherwise bound
   // it to V_th.
-  const double V = is_refractory ? node.P_.V_reset_ : std::min( y[ S::V_M ], node.P_.V_th_ );
-
-  const double I_syn_exc = y[ S::G_EXC ] * ( V - node.P_.E_ex );
-  const double I_syn_inh = y[ S::G_INH ] * ( V - node.P_.E_in );
-  const double I_L = node.P_.g_L * ( V - node.P_.E_L );
-
-  // V dot
-  f[ 0 ] = is_refractory ? 0.0 : ( -I_L + node.B_.I_stim_ + node.P_.I_e - I_syn_exc - I_syn_inh ) / node.P_.C_m;
-
-  f[ 1 ] = -y[ S::G_EXC ] / node.P_.tau_synE;
-  f[ 2 ] = -y[ S::G_INH ] / node.P_.tau_synI;
-
-  // TODO change here
-//  // ode_state[] here is---and must be---the state vector supplied by the integrator,
-//  // not the state vector in the node, node.S_.ode_state[].
+//  const double V = is_refractory ? node.P_.V_reset_ : std::min( y[ S::V_m ], node.P_.V_th_ );
 //
-//  const double I_syn_exc_rec1 = ode_state[ State_::g_ex__X__spikeExcRec1 ] * (-ode_state[ State_::V_m ]
-//                                  + node.P_.E_ex );
-//  const double I_syn_exc_rec0 = ode_state[ State_::g_ex__X__spikeExcRec0 ] * (-ode_state[ State_::V_m ]
-//                                  + node.P_.E_ex );
-//  const double I_syn_inh = ode_state[ State_::g_in__X__spikeInh ] * ( -ode_state[ State_::V_m ] + node.P_.E_in );
-//  const double I_L = node.P_.g_L * ( -ode_state[ State_::V_m ] + node.P_.E_L );
+//  const double I_syn_exc = y[ S::G_EXC ] * ( V - node.P_.E_ex );
+//  const double I_syn_inh = y[ S::G_INH ] * ( V - node.P_.E_in );
+//  const double I_L = node.P_.g_L * ( V - node.P_.E_L );
 //
-//  f[State_::V_m] = (node.get_I_e() + node.B_.I_stim_grid_sum_ + I_L + I_syn_exc_rec0 + I_syn_inh + I_syn_exc_rec1)
-//    / node.get_C_m();
+//  // V dot
+//  f[ 0 ] = is_refractory ? 0.0 : ( -I_L + node.B_.I_stim_ + node.P_.I_e - I_syn_exc - I_syn_inh ) / node.P_.C_m;
 //
-//  f[State_::g_ex__X__spikeExcRec0] = -(ode_state[State_::g_ex__X__spikeExcRec0]) / node.get_tau_syn_ex();
-//  f[State_::g_ex__X__spikeExcRec1] = -(ode_state[State_::g_ex__X__spikeExcRec1]) / node.get_tau_syn_ex_rec1();
-//  f[State_::g_in__X__spikeInh] = -(ode_state[State_::g_in__X__spikeInh]) / node.get_tau_syn_in();
+//  f[ 1 ] = -y[ S::G_EXC ] / node.P_.tau_synE;
+//  f[ 2 ] = -y[ S::G_INH ] / node.P_.tau_synI;
+
+  // TODO it seems that we have not been clamping the voltage to reset properly...
+//  const double V = is_refractory ? node.P_.V_reset_ : std::min( y[ S::V_m ], node.P_.V_th_ );
+  const double V = y[ S::V_m ];
+
+  // this was before...
+  const double I_syn_exc_rec0 = y[ S::g_ex__X__spikeExcRec0 ] * (-V + node.P_.E_ex );
+  const double I_syn_exc_rec1 = y[ S::g_ex__X__spikeExcRec1 ] * (-V + node.P_.E_ex );
+  const double I_syn_inh = y[ S::g_in__X__spikeInh ] * ( -V + node.P_.E_in );
+  const double I_L = node.P_.g_L * ( -V + node.P_.E_L );
+
+    // TODO it seems that we have not been clamping the voltage to reset properly...
+//  f[S::V_m] = is_refractory ? 0.0 : (node.P_.I_e + node.B_.I_stim_grid_sum_ + I_L
+//                                     + I_syn_exc_rec0 + I_syn_inh + I_syn_exc_rec1) / node.P_.C_m;
+  f[S::V_m] = (node.P_.I_e + node.B_.I_stim_grid_sum_ + I_L + I_syn_exc_rec0 + I_syn_inh + I_syn_exc_rec1)
+              / node.P_.C_m;
+
+  f[S::g_ex__X__spikeExcRec0] = -(y[S::g_ex__X__spikeExcRec0]) / node.P_.tau_syn_ex_rec0;
+  f[S::g_ex__X__spikeExcRec1] = -(y[S::g_ex__X__spikeExcRec1]) / node.P_.tau_syn_ex_rec1;
+  f[S::g_in__X__spikeInh] = -(y[S::g_in__X__spikeInh]) / node.P_.tau_syn_in;
 
   return GSL_SUCCESS;
 }
@@ -130,16 +126,14 @@ nest::ShouvalNeuron_dynamics( double, const double y[], double f[], void* pnode 
  * ---------------------------------------------------------------- */
 
 nest::ShouvalNeuron::Parameters_::Parameters_()
-  : V_th_( -55.0 )    // mV
-  , V_reset_( -60.0 ) // mV
-  , t_ref_( 2.0 )     // ms
+  : V_th( -55.0 )    // mV
+  , V_reset( -61.0 ) // mV
+  , t_ref( 2.0 )     // ms
   , g_L( 10. )    // nS
   , C_m( 200.0 )      // pF
   , E_ex( -5.0 )       // mV
   , E_in( -70.0 )     // mV
   , E_L( -60.0 )      // mV
-  , tau_synE( 0.2 )   // ms
-  , tau_synI( 2.0 )   // ms
   , I_e( 0.0 )        // pA
 
   , tau_syn_ex_rec0 ( 80. )
@@ -147,14 +141,15 @@ nest::ShouvalNeuron::Parameters_::Parameters_()
   , tau_syn_in ( 10. )
   , tau_w ( 40. )
   , rho ( 1 / 7. )
+  , logOutput ( false )
 {
 }
 
 nest::ShouvalNeuron::State_::State_( const Parameters_& p )
   : r_( 0 )
 {
-  y_[ V_M ] = p.E_L;
-  y_[ G_EXC ] = y_[ G_INH ] = 0;
+  y_[ V_m ] = p.E_L;
+//  y_[ G_EXC ] = y_[ G_INH ] = 0;
 
   y_[ V_m ] = p.E_L;
   y_[ g_ex__X__spikeExcRec0 ] = 0;
@@ -207,26 +202,32 @@ nest::ShouvalNeuron::Variables_::Variables_( const Variables_& __n )
 void
 nest::ShouvalNeuron::Parameters_::get( DictionaryDatum& d ) const
 {
-  def< double >( d, names::V_th, V_th_ );
-  def< double >( d, names::V_reset, V_reset_ );
-  def< double >( d, names::t_ref, t_ref_ );
+  def< double >( d, names::V_th, V_th );
+  def< double >( d, names::V_reset, V_reset );
+  def< double >( d, names::t_ref, t_ref );
   def< double >( d, names::g_L, g_L );
   def< double >( d, names::E_L, E_L );
   def< double >( d, names::E_ex, E_ex );
   def< double >( d, names::E_in, E_in );
   def< double >( d, names::C_m, C_m );
-  def< double >( d, names::tau_syn_ex, tau_synE );
-  def< double >( d, names::tau_syn_in, tau_synI );
   def< double >( d, names::I_e, I_e );
+  
+  // CS
+  def<double>(d, "tau_syn_ex_rec0", tau_syn_ex_rec0);
+  def<double>(d, "tau_syn_ex_rec1", tau_syn_ex_rec1);
+  def<double>(d, "tau_syn_in", tau_syn_in);
+  def<double>(d, "tau_w", tau_w);
+  def<double>(d, "rho", rho);
+  def<double>(d, "logOutput", logOutput);
 }
 
 void
 nest::ShouvalNeuron::Parameters_::set( const DictionaryDatum& d, Node* node )
 {
   // allow setting the membrane potential
-  updateValueParam< double >( d, names::V_th, V_th_, node );
-  updateValueParam< double >( d, names::V_reset, V_reset_, node );
-  updateValueParam< double >( d, names::t_ref, t_ref_, node );
+  updateValueParam< double >( d, names::V_th, V_th, node );
+  updateValueParam< double >( d, names::V_reset, V_reset, node );
+  updateValueParam< double >( d, names::t_ref, t_ref, node );
   updateValueParam< double >( d, names::E_L, E_L, node );
 
   updateValueParam< double >( d, names::E_ex, E_ex, node );
@@ -235,11 +236,16 @@ nest::ShouvalNeuron::Parameters_::set( const DictionaryDatum& d, Node* node )
   updateValueParam< double >( d, names::C_m, C_m, node );
   updateValueParam< double >( d, names::g_L, g_L, node );
 
-  updateValueParam< double >( d, names::tau_syn_ex, tau_synE, node );
-  updateValueParam< double >( d, names::tau_syn_in, tau_synI, node );
-
   updateValueParam< double >( d, names::I_e, I_e, node );
-  if ( V_reset_ >= V_th_ )
+  
+  updateValueParam<double>(d, "tau_syn_ex_rec0", tau_syn_ex_rec0, node);
+  updateValueParam<double>(d, "tau_syn_ex_rec1", tau_syn_ex_rec1, node);
+  updateValueParam<double>(d, "tau_syn_in", tau_syn_in, node);
+  updateValueParam<double>(d, "tau_w", tau_w, node);
+  updateValueParam<double>(d, "rho", rho, node);
+  updateValueParam<bool>(d, "logOutput", logOutput, node);
+  
+  if ( V_reset >= V_th )
   {
     throw BadProperty( "Reset potential must be smaller than threshold." );
   }
@@ -247,30 +253,63 @@ nest::ShouvalNeuron::Parameters_::set( const DictionaryDatum& d, Node* node )
   {
     throw BadProperty( "Capacitance must be strictly positive." );
   }
-  if ( t_ref_ < 0 )
+  if ( t_ref < 0 )
   {
     throw BadProperty( "Refractory time cannot be negative." );
-  }
-  if ( tau_synE <= 0 || tau_synI <= 0 )
-  {
-    throw BadProperty( "All time constants must be strictly positive." );
   }
 }
 
 void
 nest::ShouvalNeuron::State_::get( DictionaryDatum& d ) const
 {
-  def< double >( d, names::V_m, y_[ V_M ] ); // Membrane potential
-  def< double >( d, names::g_ex, y_[ G_EXC ] );
-  def< double >( d, names::g_in, y_[ G_INH ] );
+  def< double >( d, names::V_m, y_[ V_m ] ); // Membrane potential
+  def<double>(d, "g_ex__X__spikeExcRec0", y_[ g_ex__X__spikeExcRec0 ]);
+  def<double>(d, "g_ex__X__spikeExcRec1", y_[ g_ex__X__spikeExcRec1 ]);
+  def<double>(d, "g_in__X__spikeInh", y_[ g_in__X__spikeInh ]);
 }
 
 void
 nest::ShouvalNeuron::State_::set( const DictionaryDatum& d, const Parameters_&, Node* node )
 {
-  updateValueParam< double >( d, names::V_m, y_[ V_M ], node );
-  updateValueParam< double >( d, names::g_ex, y_[ G_EXC ], node );
-  updateValueParam< double >( d, names::g_in, y_[ G_INH ], node );
+  updateValueParam< double >( d, names::V_m, y_[ V_m ], node );
+  updateValueParam<double>(d, "g_ex__X__spikeExcRec0", y_[ g_ex__X__spikeExcRec0 ], node );
+  updateValueParam<double>(d, "g_ex__X__spikeExcRec1", y_[ g_ex__X__spikeExcRec1 ], node );
+  updateValueParam<double>(d, "g_in__X__spikeInh", y_[ g_in__X__spikeInh ], node );
+}
+
+void
+nest::ShouvalNeuron::Variables_::get( DictionaryDatum& d ) const
+{
+  def< double >( d, "t_end_last_trial", t_end_last_trial );
+  def< double >( d, "rate", rate );
+  def<std::vector<double>>(d, "recorded_times", recorded_times);
+  def<std::vector<long>>(d, "recorded_input_ids", recorded_input_ids);
+  def<std::vector<double>>(d, "recorded_activation_traces", recorded_activation_traces);
+  def<std::vector<double>>(d, "recorded_rates", recorded_rates);
+}
+
+void
+nest::ShouvalNeuron::Variables_::set( const DictionaryDatum& d, const Parameters_& p, Node* node )
+{
+  updateValueParam< double >( d, "t_end_last_trial", t_end_last_trial , node );
+  updateValueParam< double >( d, "rate", rate , node );
+  std::vector<double> tmp_recorded_times = recorded_times;
+  std::vector<long> tmp_recorded_input_ids = recorded_input_ids;
+  std::vector<double> tmp_recorded_activation_traces = recorded_activation_traces;
+  std::vector<double> tmp_recorded_rates = recorded_rates;
+
+  if (p.logOutput)
+  {
+    tmp_recorded_times.clear();
+    tmp_recorded_input_ids.clear();
+    tmp_recorded_activation_traces.clear();
+    tmp_recorded_rates.clear();
+  }
+
+  recorded_times = tmp_recorded_times;
+  recorded_input_ids = tmp_recorded_input_ids;
+  recorded_activation_traces =  tmp_recorded_activation_traces;
+  recorded_rates = tmp_recorded_rates;
 }
 
 nest::ShouvalNeuron::Buffers_::Buffers_( ShouvalNeuron& n )
@@ -396,7 +435,7 @@ nest::ShouvalNeuron::pre_run_hook()
   // ensures initialization in case mm connected after Simulate
   B_.logger_.init();
 
-  V_.RefractoryCounts_ = Time( Time::ms( P_.t_ref_ ) ).get_steps();
+  V_.RefractoryCounts_ = Time( Time::ms( P_.t_ref ) ).get_steps();
   // since t_ref_ >= 0, this can only fail in error
   assert( V_.RefractoryCounts_ >= 0 );
 
@@ -422,6 +461,8 @@ void nest::ShouvalNeuron::evolve_synaptic_activation_traces( nest::Time const & 
     if (V_.preSynWeights[it] >= 0.) {
       // branch on receptor type 0/1
       if (V_.isExcRec1[it]) {
+//        msg << "[update] processing active source, preSynActiv Trace before any update: " << it << " => "
+//            << V_.preSynActivationTraces[it] << "\n";
         V_.preSynActivationTraces[it] *= V_.__P__g_ex__X__spikeRec1__g_Rec1__X__spikeRec1;
       }
       else {
@@ -441,8 +482,8 @@ void nest::ShouvalNeuron::evolve_synaptic_activation_traces( nest::Time const & 
         << "; origin: " << origin.get_steps() << "; lag: " << lag << "\n";
     if (it->deliveryTime == origin.get_steps() + lag - 1)
     {
-      //            msg << "[update] Adding delta impulse from source " << it->id_ << " => "
-      //                << V_.preSynActivationTraces[it->id_] << "\n";
+//      msg << "[update] Adding delta impulse from source " << it->id_ << " => "
+//          << V_.preSynActivationTraces[it->id_] << "\n";
 
       // spike from excitatory neuron
       if (it->w >= 0.) {
@@ -458,7 +499,7 @@ void nest::ShouvalNeuron::evolve_synaptic_activation_traces( nest::Time const & 
           {
             it->one_step_mercy = true;
             ++it;
-            msg << "[update] compensating for 1 step difference in spike delivery...\n";
+//            msg << "[update] compensating for 1 step difference in spike delivery...\n";
           }
         }
         else
@@ -482,7 +523,7 @@ void nest::ShouvalNeuron::evolve_synaptic_activation_traces( nest::Time const & 
           {
             it->one_step_mercy = true;
             ++it;
-            msg << "[update] compensating for 1 step difference in spike delivery...\n";
+//            msg << "[update] compensating for 1 step difference in spike delivery...\n";
           }
         }
         else
@@ -508,6 +549,9 @@ void nest::ShouvalNeuron::evolve_synaptic_activation_traces( nest::Time const & 
     {
       if (V_.isExcRec1[it])
       {
+//        msg << "[update] receptor 1, presyn weight is : " << V_.preSynWeights[it]
+//            << "and preSynActivationTrace is : " << V_.preSynActivationTraces[it]
+//            << "\n";
         tmp_w_s_exc_rec1 += V_.preSynWeights[it] * V_.preSynActivationTraces[it];
       }
       else
@@ -525,7 +569,9 @@ void nest::ShouvalNeuron::evolve_synaptic_activation_traces( nest::Time const & 
   S_.y_[State_::g_ex__X__spikeExcRec0] = tmp_w_s_exc_rec0;
   S_.y_[State_::g_ex__X__spikeExcRec1] = tmp_w_s_exc_rec1;
   S_.y_[State_::g_in__X__spikeInh] = -tmp_w_s_inh;  // ensure the conductance is still positive!
-
+//  std::cout << msg.str() << std::endl << std::flush;
+//  std::cout << "[" << this->get_node_id() << "] @@@ updated g_ex__X__spikeExcRec = " << S_.y_[State_::g_ex__X__spikeExcRec1] << "\n"
+//            << std::flush;
 }
 
 
@@ -536,23 +582,38 @@ nest::ShouvalNeuron::update( Time const& origin, const long from, const long to 
   assert( to >= 0 && ( delay ) from < kernel().connection_manager.get_min_delay() );
   assert( from < to );
 
+  std::ostringstream msg;
+
   for ( long lag = from; lag < to; ++lag )
   {
-
     double t = 0.0;
 
-    // numerical integration with adaptive step size control:
-    // ------------------------------------------------------
-    // gsl_odeiv_evolve_apply performs only a single numerical
-    // integration step, starting from t and bounded by step;
-    // the while-loop ensures integration over the whole simulation
-    // step (0, step] if more than one integration step is needed due
-    // to a small integration step size;
-    // note that (t+IntegrationStep > step) leads to integration over
-    // (t, step] and afterwards setting t to step, but it does not
-    // enforce setting IntegrationStep to step-t; this is of advantage
-    // for a consistent and efficient integration across subsequent
-    // simulation intervals
+//    msg << "from " << from << " to " << to << ", lag = " << lag << "\n";
+
+    B_.spikeInh_grid_sum_ = B_.spike_inh_.get_value(lag);
+    B_.spikeExc_grid_sum_ = B_.spike_exc_.get_value(lag);
+    B_.I_stim_grid_sum_ = B_.currents_.get_value(lag);
+
+
+    double g_ex__X__spikeExcRec0__tmp = V_.__P__g_ex__X__spikeRec0__g_Rec0__X__spikeRec0
+      * S_.y_[State_::g_ex__X__spikeExcRec0];
+    double g_ex__X__spikeExcRec1__tmp = V_.__P__g_ex__X__spikeRec1__g_Rec1__X__spikeRec1
+      * S_.y_[State_::g_ex__X__spikeExcRec1];
+    double g_in__X__spikeInh__tmp = V_.__P__g_in__X__spikeInh__g_in__X__spikeInh
+      * S_.y_[State_::g_in__X__spikeInh];
+    V_.rate *= V_.__rate_kernel;
+
+//    std::cout << "[" << this->get_node_id() << "] >>> g_ex__X__spikeExcRec = " << S_.y_[State_::g_ex__X__spikeExcRec1] << "\n"
+//              << "[" << this->get_node_id() << "] >>> V_.__P__g_ex__X__spikeRec1__g_Rec1__X__spikeRec1 = " << V_.__P__g_ex__X__spikeRec1__g_Rec1__X__spikeRec1 << "\n"
+//              << std::flush;
+    // TODO shouldn't this be outside the loop?
+    if (P_.logOutput)
+    {
+      V_.recorded_times.push_back( origin.get_steps() + lag );
+      V_.recorded_rates.push_back( V_.rate );
+    }
+
+//    std::cout << "[" << this->get_node_id() << "] Vm before integration is " << S_.y_[State_::V_m] << std::endl << std::flush;
     while ( t < B_.step_ )
     {
       const int status = gsl_odeiv_evolve_apply( B_.e_,
@@ -569,28 +630,36 @@ nest::ShouvalNeuron::update( Time const& origin, const long from, const long to 
       }
     }
 
-    S_.y_[ State_::G_EXC ] += B_.spike_exc_.get_value( lag );
-    S_.y_[ State_::G_INH ] += B_.spike_inh_.get_value( lag );
+    /* replace analytically solvable variables with precisely integrated values  */
+    S_.y_[State_::g_ex__X__spikeExcRec0] = g_ex__X__spikeExcRec0__tmp;
+    S_.y_[State_::g_ex__X__spikeExcRec1] = g_ex__X__spikeExcRec1__tmp;
+    S_.y_[State_::g_in__X__spikeInh] = g_in__X__spikeInh__tmp;
 
+//    std::cout << "[" << this->get_node_id() << "] >>> AFTER g_ex__X__spikeExcRec = " << S_.y_[State_::g_ex__X__spikeExcRec1] << "\n" << std::flush;
+
+    // evolves the activation traces s_i and updates the conductances scaled by the weight
+    evolve_synaptic_activation_traces(origin, lag);
+//    std::cout << "[" << this->get_node_id() << "] Vm after integration is " << S_.y_[State_::V_m] << std::endl << std::flush;
     // absolute refractory period
     if ( S_.r_ )
     { // neuron is absolute refractory
       --S_.r_;
-      S_.y_[ State_::V_M ] = P_.V_reset_;
+      S_.y_[ State_::V_m ] = P_.V_reset;
     }
     else
       // neuron is not absolute refractory
-      if ( S_.y_[ State_::V_M ] >= P_.V_th_ )
+      if ( S_.y_[ State_::V_m ] >= P_.V_th )
       {
         S_.r_ = V_.RefractoryCounts_;
-        S_.y_[ State_::V_M ] = P_.V_reset_;
+        S_.y_[ State_::V_m ] = P_.V_reset;
 
         set_spiketime( Time::step( origin.get_steps() + lag + 1 ) );
-
         SpikeEvent se;
-        se.set_sender( *this );
-        se.set_sender_node_id( this->get_node_id() );
+//        se.set_rport( this->get_node_id() );  // set sender port to node id so that the receiving neuron has access to it
         kernel().event_delivery_manager.send( *this, se, lag );
+
+        //! also update the rate
+        V_.rate += 1. / P_.tau_w;
       }
 
     // set new input current
@@ -598,6 +667,7 @@ nest::ShouvalNeuron::update( Time const& origin, const long from, const long to 
 
     // log state data
     B_.logger_.record_data( origin.get_steps() + lag );
+//    std::cout << msg.str() << std::endl << std::flush;
   }
 }
 
@@ -606,30 +676,27 @@ nest::ShouvalNeuron::handle( SpikeEvent& e )
 {
   assert( e.get_delay_steps() > 0 );
 
-  std::cout << "Spike handling from sender ID: " << e.is_valid() << " 1  " << std::endl << std::flush << std::flush;
-  std::cout << "Spike handling from sender ID: " << e.receiver_is_valid() << " 2  " << std::endl << std::flush << std::flush;
-  std::cout << "Spike handling from sender ID: " << e.sender_is_valid() << " 3  " << std::endl << std::flush << std::flush;
-
-  if ( e.get_weight() > 0.0 )
-  {
-    B_.spike_exc_.add_value( e.get_rel_delivery_steps( kernel().simulation_manager.get_slice_origin() ),
-      e.get_weight() * e.get_multiplicity() );
-  }
-  else
-  {
-    B_.spike_inh_.add_value( e.get_rel_delivery_steps( kernel().simulation_manager.get_slice_origin() ),
-      -e.get_weight() * e.get_multiplicity() );
-  }
-
-  std::cout << " e.get_sender_node_id(): " <<  e.get_sender_node_id() << std::endl << std::flush;
-
-  return;
-
-  // NEW version
-
   const double weight = e.get_weight();
   const double multiplicity = e.get_multiplicity();
-  const nest::rport port = e.get_rport();
+  const nest::rport encoded_rport = e.get_rport();
+  nest::rport rport;
+  unsigned long sender_node_id;
+
+  // need to differentiate between spikes from other neurons and from generators
+  if (encoded_rport > 1e5)
+  { // from neuron
+    rport = encoded_rport / (int)1e6 - 1;  // first digit encodes the rport + 1
+    sender_node_id = encoded_rport % int(1e5);
+  }
+  else
+  { // from generator
+    rport = encoded_rport;
+//      std::cout << "Neuron " << this->get_node_id() << " received a spike on RPORT: " << rport <<
+//        "from SOURCE NEURON ? with weight: " << weight << std::endl << std::flush;
+    sender_node_id = e.get_sender_node_id();  // we assume this works here, and it should hold for non-neuron nodes (?!)
+  }
+
+  assert(0 <= rport and rport <= 1);
 
   // ignore every spike from previous trial @critical
   if (e.get_stamp().get_steps() + e.get_delay_steps() >=
@@ -638,8 +705,14 @@ nest::ShouvalNeuron::handle( SpikeEvent& e )
     return;
   }
 
-  if (weight < 0.0) { // inhibitory
-    if ( port == 0 ) {
+//  std::cout << "Neuron " << this->get_node_id() << " received a spike on RPORT: " << rport <<
+//    "from SOURCE NEURON " << sender_node_id << " with encoded PORT " << encoded_rport << std::endl << std::flush;
+
+  // inhibitory
+  if (weight < 0.0)
+  {
+    if ( rport == 0 )
+    {
       throw BadProperty("Because there are only I -> M connections with tau_syn_MI = 10ms = tau_syn_ex_rec1,"
         "inhibitory connections must be made onto receptor 1 (for now).");
     }
@@ -647,42 +720,45 @@ nest::ShouvalNeuron::handle( SpikeEvent& e )
     long deliveryTime = e.get_rel_delivery_steps(kernel().simulation_manager.get_slice_origin());
 
     TraceTracker_ spikeEventStruct = {e.get_stamp().get_steps() + e.get_delay_steps() - 2,
-      weight, e.get_sender_node_id(), port, false, true};
+      weight, sender_node_id, rport, false, true};
 
     V_.spikeEvents.push_back(spikeEventStruct);
-    V_.activeSources.insert(e.get_sender_node_id());
-    V_.preSynWeights[e.get_sender_node_id()] = weight;
+    V_.activeSources.insert(sender_node_id);
+    V_.preSynWeights[sender_node_id] = weight;
 //    get_spikeInh().add_value(deliveryTime, -1 * weight * multiplicity);
     B_.spike_inh_.add_value(deliveryTime, -1 * weight * multiplicity);
   }
 
-  if (weight >= 0.0) { // excitatory
+  // excitatory
+  if (weight >= 0.0)
+  {
     // this includes the delay
     long deliveryTime = e.get_rel_delivery_steps(kernel().simulation_manager.get_slice_origin());
 
     std::ostringstream msg;
     msg << "\n\t\tweight: " << weight
-        << "\n\t\t sender id: " << e.get_sender_node_id()
+        << "\n\t\t sender id: " << sender_node_id
         << "\n\t\t TIME: (event tstamp) " << e.get_stamp().get_steps()
-//        << "\n\t\t slice_origin(): " << kernel().simulation_manager.get_slice_origin()
         << "\n\t\t get_delay_steps(): " << e.get_delay_steps()
         << "\n\t\t deliveryTime: " << deliveryTime
         << "\n\t\t absolut deliveryTime (! precise): " << e.get_stamp().get_steps() + e.get_delay_steps() - 2
-        << "\n\t\t isLGN (port 1, tau_syn_rec1)? : " << (bool) (port > 0)
+        << "\n\t\t isLGN (port 1, tau_syn_rec1)? : " << (bool) (rport > 0)
         << "\n";
 
     TraceTracker_ spikeEventStruct = {e.get_stamp().get_steps() + e.get_delay_steps() - 2,
-      weight, e.get_sender_node_id(), port, false, true};
+      weight, sender_node_id, rport, false, true};
 
-    if ( port > 0 ) {
-      V_.isExcRec1[e.get_sender_node_id()] = true;
+    if ( rport > 0 ) {
+      V_.isExcRec1[sender_node_id] = true;
     }
 
     V_.spikeEvents.push_back(spikeEventStruct);
-    V_.preSynWeights[e.get_sender_node_id()] = weight;
-    V_.activeSources.insert(e.get_sender_node_id());
+    V_.preSynWeights[sender_node_id] = weight;
+    V_.activeSources.insert(sender_node_id);
 //    get_spikeExc().add_value(deliveryTime, weight * multiplicity);
     B_.spike_exc_.add_value(deliveryTime, weight * multiplicity);
+
+//    std::cout << msg.str() <<  std::endl << std::flush;
   }
 }
 
